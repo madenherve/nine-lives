@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nine Lives — a daily card game</title>
+<meta name="description" content="Nine cards, one deck, no mercy. Call higher, lower, same, red or black and burn through the deck before all nine slots are gone. New puzzle daily.">
+<meta name="theme-color" content="#07130D">
+<meta name="color-scheme" content="dark">
+
+<!-- Link previews in group chats. Replace the URL with your domain after deploying. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Nine Lives — a daily card game">
+<meta property="og:description" content="Nine cards, one deck, no mercy. A new puzzle every day.">
+<meta property="og:image" content="/icon-512.png">
+<meta property="og:url" content="https://example.com">
+<meta name="twitter:card" content="summary">
+
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<style>
+  :root{
+    --bottle-deep:#07130D;
+    --brass:#C79A2E;
+    --brass-dim:#7A5F1C;
+    --cream:#F2EAD8;
+    --cream-dim:#CFC5AE;
+    --ox:#A32E28;
+    --ox-lit:#C4382F;
+    --ink:#161A18;
+    --coal:#12171A;
+    --chalk:#9FB3A6;
+    --dead:#1B3227;
+    --r:3px;
+    --reserve:406px;
+    --boardw:max(240px,min(450px,calc(100vw - 28px),calc((100vh - var(--reserve)) / 1.4)));
+    /* No webfont requests: keeps load instant and sends no visitor IPs to third parties.
+       Apple devices get Bodoni 72 for the Victorian card look; everything else falls to Georgia. */
+    --serif:"Bodoni 72","Bodoni MT",Didot,"Didot LT STD",Georgia,"Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media(min-width:820px){:root{--reserve:346px}}
+  @supports (height:100dvh){
+    :root{--boardw:max(240px,min(450px,calc(100vw - 28px),calc((100dvh - var(--reserve)) / 1.4)))}
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{background:var(--bottle-deep)}
+  body{
+    font-family:var(--sans);
+    background:radial-gradient(120% 70% at 50% -12%,#163023 0%,transparent 55%),var(--bottle-deep);
+    color:var(--cream);min-height:100vh;padding:10px 14px 18px;
+    display:flex;justify-content:center;
+  }
+  .wrap{width:100%;max-width:900px}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(20px,4vh,28px);line-height:.95;letter-spacing:.01em}
+  h1 em{font-style:italic;color:var(--brass)}
+  .puz{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk);margin-top:3px}
+  .hbtns{display:flex;gap:7px;flex:none}
+  .helpbtn{
+    width:32px;height:32px;border-radius:50%;cursor:pointer;
+    background:none;border:1px solid rgba(199,154,46,.5);color:var(--brass);
+    font-family:var(--serif);font-size:16px;font-weight:700;line-height:1;
+  }
+  .helpbtn:hover{background:rgba(199,154,46,.18)}
+  .helpbtn:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+  .ctlbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-bottom:9px;margin-bottom:10px;border-bottom:1px solid rgba(199,154,46,.28)}
+  .seg{display:flex;border:1px solid rgba(199,154,46,.4);border-radius:var(--r);overflow:hidden}
+  .seg span{font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk);padding:6px 8px;background:rgba(0,0,0,.25);display:flex;align-items:center}
+  .seg button{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:6px 11px;background:none;border:0;color:var(--chalk);cursor:pointer;white-space:nowrap}
+  .seg button[aria-pressed="true"]{background:var(--brass);color:#1A1405;font-weight:700}
+  .seg button:disabled{opacity:.35;cursor:not-allowed}
+  .seg button:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
+
+  .board{display:grid;gap:16px;grid-template-columns:1fr}
+  @media(min-width:820px){.board{grid-template-columns:var(--boardw) 226px;align-items:start;gap:22px}}
+  .status,.gridwrap,.calls,.msg,.foot,.note{width:var(--boardw);max-width:100%}
+
+  .status{display:flex;gap:8px;margin-bottom:9px;font-family:var(--mono)}
+  .stat{flex:1;min-width:0;border:1px solid rgba(199,154,46,.25);border-radius:var(--r);padding:4px 8px;background:rgba(255,255,255,.02)}
+  .stat b{display:block;font-size:16px;font-weight:700;line-height:1.15}
+  .stat span{font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--chalk)}
+  .stat.hide{display:none}
+
+  .gridwrap{position:relative}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .slot{position:relative;aspect-ratio:5/7;border:0;padding:0;background:transparent;cursor:pointer;font:inherit}
+  .slot:disabled{cursor:default}
+  .slot:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:5px}
+
+  .card{
+    position:absolute;inset:0;border-radius:5px;
+    background:linear-gradient(170deg,#FBF6EA,#E8DFC8);color:var(--ink);
+    display:flex;flex-direction:column;justify-content:space-between;padding:6px 7px;
+    box-shadow:0 2px 0 rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.35);
+    transition:transform .18s ease,box-shadow .18s ease;
+  }
+  .card.red{color:var(--ox)}
+  .card.ghost{filter:grayscale(1);opacity:.28;box-shadow:none}
+  .corner{font-family:var(--serif);font-weight:700;font-size:clamp(14px,2.7vh,21px);line-height:.9;display:flex;flex-direction:column;align-items:flex-start}
+  .corner small{font-size:.72em}
+  .corner.flip{align-self:flex-end;transform:rotate(180deg)}
+  .pip{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(28px,5.5vh,42px);opacity:.9}
+  .slot[aria-pressed="true"] .card{transform:translateY(-6px);box-shadow:0 2px 0 rgba(0,0,0,.35),0 12px 22px rgba(0,0,0,.5),0 0 0 2px var(--brass)}
+
+  .back{
+    position:absolute;inset:0;border-radius:5px;
+    background:repeating-linear-gradient(45deg,rgba(199,154,46,.16) 0 2px,transparent 2px 7px),
+               repeating-linear-gradient(-45deg,rgba(199,154,46,.16) 0 2px,transparent 2px 7px),var(--dead);
+    border:1px solid rgba(199,154,46,.3);display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 0 20px rgba(0,0,0,.6);
+  }
+  .back::before{content:"";position:absolute;inset:6px;border:1px solid rgba(199,154,46,.35);border-radius:2px}
+  .back span{font-family:var(--serif);font-size:19px;color:var(--brass-dim);transform:rotate(45deg)}
+  .slot.revivable .card,.slot.revivable .back{box-shadow:0 0 0 2px var(--brass),0 0 16px rgba(199,154,46,.5);animation:pulse 1.1s ease-in-out infinite}
+  .slot.revivable .card.ghost{filter:grayscale(.4);opacity:.75}
+  @keyframes pulse{50%{transform:translateY(-4px)}}
+  .slot.dealing .card{animation:deal .26s ease both}
+  @keyframes deal{from{transform:translateY(-12px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+
+  .calls{margin-top:11px}
+  .prompt{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk);margin-bottom:6px;min-height:13px}
+  .prompt.alert{color:var(--brass)}
+  .btns{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .btns .wide{grid-column:span 3;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  button.call{
+    font-family:var(--sans);font-weight:800;font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+    padding:9px 4px;border-radius:var(--r);cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    background:rgba(242,234,216,.06);color:var(--cream);border:1px solid rgba(199,154,46,.38);
+    transition:background .14s ease,transform .1s ease;
+  }
+  button.call .gl{font-size:17px;line-height:1;font-weight:400}
+  button.call:hover:not(:disabled){background:rgba(199,154,46,.2)}
+  button.call:active:not(:disabled){transform:translateY(1px)}
+  button.call:disabled{opacity:.3;cursor:default}
+  button.call:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+  button.call.red-c{background:linear-gradient(170deg,var(--ox-lit),#8C231E);border-color:#D9554C;color:#FFF1EF;box-shadow:0 2px 0 #5E1512,0 4px 12px rgba(163,46,40,.4)}
+  button.call.red-c:hover:not(:disabled){background:linear-gradient(170deg,#D14238,#9C2822)}
+  button.call.black-c{background:linear-gradient(170deg,#232A2E,var(--coal));border-color:#4A555B;color:#EDF1F3;box-shadow:0 2px 0 #000,0 4px 12px rgba(0,0,0,.5)}
+  button.call.black-c:hover:not(:disabled){background:linear-gradient(170deg,#2E373C,#171D21)}
+  button.call.red-c .gl,button.call.black-c .gl{font-size:15px}
+
+  .msg{margin-top:10px;padding:9px 11px;border-radius:var(--r);border-left:3px solid var(--brass);background:rgba(255,255,255,.035);font-size:12.5px;line-height:1.4;min-height:38px;display:flex;align-items:center}
+  .msg.good{border-left-color:#5FA36B}
+  .msg.bad{border-left-color:var(--ox)}
+  .msg.revive{border-left-color:var(--brass);background:rgba(199,154,46,.12)}
+  .msg b{font-family:var(--serif);font-size:15px}
+  .msg .rd{color:#E9938E}
+
+  .endcard{
+    position:absolute;inset:-6px;z-index:5;border-radius:8px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+    padding:14px;text-align:center;background:rgba(6,16,11,.92);
+    -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    animation:stamp .5s cubic-bezier(.2,1.35,.4,1) both;overflow:auto;
+  }
+  .endcard .quip{font-weight:800;text-transform:uppercase;font-size:clamp(12px,2.2vh,17px);letter-spacing:.03em;line-height:1.25;max-width:22ch;margin-bottom:-5px}
+  .endcard.lose .quip{color:#F09A95}
+  .endcard.win .quip{color:#9BE0AF}
+  .endcard h3{font-family:var(--serif);font-style:italic;font-weight:700;font-size:clamp(34px,8.5vh,62px);line-height:.85;letter-spacing:-.02em;text-transform:uppercase}
+  .endcard.win{border:1px solid rgba(95,208,126,.5)}
+  .endcard.win h3{color:#5FD07E;text-shadow:0 0 34px rgba(95,208,126,.55)}
+  .endcard.lose{border:1px solid rgba(226,75,68,.5)}
+  .endcard.lose h3{color:#E24B44;text-shadow:0 0 34px rgba(226,75,68,.5)}
+  .endcard p{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--cream-dim);line-height:1.85}
+  .endcard p b{color:var(--cream);font-size:12px}
+  .endcard .emoji{font-family:var(--mono);font-size:clamp(14px,2.5vh,19px);letter-spacing:1px;line-height:1.45;margin:2px 0;white-space:pre;text-align:center}
+  .endcard .row{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-top:3px}
+  .endcard button{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;padding:10px 16px;border-radius:var(--r);border:0;background:var(--brass);color:#1A1405}
+  .endcard button.ghostbtn{background:none;border:1px solid rgba(199,154,46,.55);color:var(--brass)}
+  .endcard button:hover{opacity:.88}
+  .endcard button:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+  .fallback{width:100%;margin-top:8px;padding:8px;border-radius:var(--r);resize:none;font-family:var(--mono);font-size:11px;line-height:1.5;text-align:center;background:rgba(0,0,0,.5);color:var(--cream);border:1px solid rgba(199,154,46,.5)}
+  .fallback:focus{outline:2px solid var(--brass);outline-offset:1px}
+  @keyframes stamp{0%{opacity:0;transform:scale(1.45) rotate(-5deg)}55%{opacity:1}100%{opacity:1;transform:none}}
+
+  .trkWrap summary{list-style:none;cursor:pointer;margin-top:4px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);padding:8px 12px;border:1px solid rgba(199,154,46,.4);border-radius:var(--r);width:var(--boardw);max-width:100%;text-align:center}
+  .trkWrap summary::-webkit-details-marker{display:none}
+  .trkWrap[open] summary{margin-bottom:8px}
+  @media(min-width:820px){.trkWrap summary{display:none}.trkWrap[open] summary{margin:0}}
+
+  .tracker{border:1px solid rgba(199,154,46,.25);border-radius:var(--r);padding:11px;background:rgba(255,255,255,.02)}
+  .tracker h2{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);margin-bottom:8px}
+  .tracker.off{display:flex;align-items:center;justify-content:center;min-height:84px;text-align:center}
+  .tracker.off p{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk);line-height:1.8}
+  .bigcount{text-align:center;padding:6px 0 11px}
+  .bigcount .n{font-family:var(--mono);font-size:42px;font-weight:700;line-height:.9;color:var(--brass)}
+  .bigcount .lb{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--chalk);margin-top:5px}
+  .track{height:5px;border-radius:99px;background:rgba(0,0,0,.45);overflow:hidden;margin-top:8px}
+  .track i{display:block;height:100%;background:var(--brass);transition:width .3s ease}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
+  .col{text-align:center;padding:6px 3px;border-radius:var(--r);background:rgba(0,0,0,.28)}
+  .col .n{font-family:var(--mono);font-size:19px;font-weight:700;line-height:1}
+  .col.red .n{color:#E9938E}
+  .col .lb{font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--chalk);margin-top:3px}
+  .col .sub{font-family:var(--mono);font-size:8.5px;color:var(--chalk);margin-top:3px}
+  .bar{height:6px;border-radius:99px;overflow:hidden;display:flex;background:#000;margin-bottom:3px}
+  .bar i{display:block;transition:width .3s ease}
+  .bar .r{background:var(--ox)}
+  .bar .b{background:var(--cream-dim)}
+  .barlb{font-family:var(--mono);font-size:7.5px;color:var(--chalk);display:flex;justify-content:space-between;margin-bottom:11px;letter-spacing:.08em}
+  .ranks{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .rk{text-align:center}
+  .rk .lb{font-family:var(--serif);font-size:10px;color:var(--cream-dim);line-height:1.3}
+  .rk .ct{font-family:var(--mono);font-size:8.5px;padding:1px 0;border-radius:2px;background:rgba(199,154,46,.18)}
+  .rk .ct.zero{background:rgba(0,0,0,.4);color:#4C6155}
+
+  .foot{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .toggle{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;color:var(--chalk);display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:uppercase}
+  .toggle input{accent-color:var(--brass);width:14px;height:14px;cursor:pointer}
+  .toggle.dim{opacity:.35;cursor:not-allowed}
+  button.reset{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;background:none;border:1px solid rgba(199,154,46,.4);color:var(--brass);padding:7px 12px;border-radius:var(--r);cursor:pointer;margin-left:auto}
+  button.reset:hover{background:rgba(199,154,46,.15)}
+  button.reset:disabled{opacity:.3;cursor:not-allowed}
+  .note{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--brass-dim);margin-top:8px;line-height:1.6}
+
+  .scrim{position:fixed;inset:0;z-index:50;background:rgba(4,10,7,.84);display:flex;align-items:center;justify-content:center;padding:18px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+  .scrim[hidden]{display:none}
+  .modal{background:#0E1F17;border:1px solid rgba(199,154,46,.45);border-radius:6px;max-width:460px;width:100%;max-height:86vh;overflow:auto;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .modal h2{font-family:var(--serif);font-size:24px;margin-bottom:3px}
+  .modal h2 em{font-style:italic;color:var(--brass)}
+  .modal .sub{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk);margin-bottom:16px}
+  .modal h4{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);margin:15px 0 6px}
+  .modal p,.modal li{font-size:13px;line-height:1.55;color:var(--cream-dim)}
+  .modal ul{list-style:none}
+  .modal li{margin-bottom:6px;padding-left:15px;position:relative}
+  .modal li::before{content:"\2022";position:absolute;left:2px;color:var(--brass-dim)}
+  .modal strong{color:var(--cream);font-weight:800}
+  .modal .k{font-family:var(--mono);font-size:11px;background:rgba(199,154,46,.16);padding:1px 5px;border-radius:2px;color:var(--cream)}
+  .modal .close{margin-top:18px;width:100%;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:11px;border-radius:var(--r);border:0;background:var(--brass);color:#1A1405;cursor:pointer}
+  .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 4px}
+  .statbox{text-align:center;padding:10px 4px;border-radius:var(--r);background:rgba(0,0,0,.3)}
+  .statbox .n{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--brass);line-height:1}
+  .statbox .l{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk);margin-top:5px;line-height:1.3}
+  .langrow{display:flex;align-items:center;gap:9px;margin-top:6px}
+
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Nine <em>Lives</em></h1>
+      <div class="puz" id="puz"></div>
+    </div>
+    <div class="hbtns">
+      <button class="helpbtn" id="stats" aria-label="Your statistics">&#9724;</button>
+      <button class="helpbtn" id="help" aria-label="How to play">?</button>
+    </div>
+  </header>
+
+  <div class="ctlbar">
+    <div class="seg" role="group" aria-label="Game mode">
+      <span>Mode</span>
+      <button id="gDaily" aria-pressed="true">Daily</button>
+      <button id="gEndless" aria-pressed="false">Endless</button>
+    </div>
+    <div class="seg" role="group" aria-label="Difficulty">
+      <button id="mEasy" aria-pressed="true">Easy</button>
+      <button id="mHard" aria-pressed="false">Hard</button>
+    </div>
+    <div class="seg" role="group" aria-label="Ace value">
+      <span>Ace</span>
+      <button id="aLow" aria-pressed="true">Low</button>
+      <button id="aHigh" aria-pressed="false">High</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <div>
+      <div class="status">
+        <div class="stat" id="stDeck"><b id="sDeck">43</b><span>Deck left</span></div>
+        <div class="stat"><b id="sAlive">9</b><span>Lives</span></div>
+        <div class="stat"><b id="sStreak">0</b><span id="sStreakLbl">Streak</span></div>
+      </div>
+
+      <div class="gridwrap"><div class="grid" id="grid"></div><div id="overBox"></div></div>
+
+      <div class="calls">
+        <div class="prompt" id="prompt">Tap a card to call it</div>
+        <div class="btns">
+          <button class="call" data-call="higher" disabled><span class="gl">&#9650;</span>Higher</button>
+          <button class="call" data-call="lower" disabled><span class="gl">&#9660;</span>Lower</button>
+          <button class="call" data-call="same" disabled><span class="gl">&#61;</span>Same</button>
+          <div class="wide">
+            <button class="call red-c" data-call="red" disabled><span class="gl">&#9670;&#9829;</span>Red</button>
+            <button class="call black-c" data-call="black" disabled><span class="gl">&#9824;&#9827;</span>Black</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg" id="msg">Ace is low. A correct Same call brings a burned slot back.</div>
+      <div class="note" id="note" hidden></div>
+
+      <div class="foot">
+        <label class="toggle" id="tieLbl"><input type="checkbox" id="tieToggle"> Tie is a push</label>
+        <button class="reset" id="reset">New game</button>
+      </div>
+    </div>
+
+    <details id="trkWrap" class="trkWrap">
+      <summary>Counts &amp; tracker</summary>
+      <aside id="tracker" class="tracker"><div id="trackerInner"></div></aside>
+    </details>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h2 id="mTitle">How to <em>play</em></h2>
+    <div class="sub">Nine slots &middot; one deck &middot; no mercy</div>
+    <p>Nine cards are dealt face up. Pick any one, call what the next card off the deck will be, and try to burn through all 43 remaining cards before all nine slots are gone.</p>
+    <h4>Your five calls</h4>
+    <ul>
+      <li><strong>&#9650; Higher</strong> &mdash; next card outranks the one you picked.</li>
+      <li><strong>&#9660; Lower</strong> &mdash; next card ranks below it.</li>
+      <li><strong>= Same</strong> &mdash; next card matches its rank exactly.</li>
+      <li><strong>Red</strong> &mdash; next card is hearts or diamonds.</li>
+      <li><strong>Black</strong> &mdash; next card is spades or clubs.</li>
+    </ul>
+    <h4>Right and wrong</h4>
+    <ul>
+      <li>Correct: the drawn card <strong>replaces</strong> the one you called on.</li>
+      <li>Wrong: that slot <strong>burns</strong> and shows the card that killed it, greyed out.</li>
+      <li>All nine burned and you're done. Clear the deck and you win.</li>
+    </ul>
+    <h4>The Same comeback (house rule)</h4>
+    <p>A correct <strong>Same</strong> call revives one burned slot &mdash; burned cards light up in brass, pick the one you want back. Roughly a 1-in-17 shot, so it's a bailout, not a plan.</p>
+    <h4>Modes</h4>
+    <ul>
+      <li><strong>Daily</strong> &mdash; one deal per day, identical for every player worldwide. Ace low, ties lose. Share your result when it's over.</li>
+      <li><strong>Endless</strong> &mdash; replay freely, all rules adjustable, nothing shared.</li>
+      <li><strong>Easy</strong> shows the counts panel and remembers burned cards. <strong>Hard</strong> hides every count and covers burned slots.</li>
+    </ul>
+    <h4>Keyboard</h4>
+    <p><span class="k">1</span>&ndash;<span class="k">9</span> pick a slot, then <span class="k">H</span> <span class="k">L</span> <span class="k">S</span> <span class="k">R</span> <span class="k">B</span> to call. <span class="k">Esc</span> closes this.</p>
+    <button class="close" id="mClose">Got it</button>
+  </div>
+</div>
+
+<div class="scrim" id="statScrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sTitle">
+    <h2 id="sTitle">Your <em>record</em></h2>
+    <div class="sub">Daily games only</div>
+    <div class="statgrid" id="statGrid"></div>
+    <h4>Language</h4>
+    <p>The end-of-game jabs come in two flavours. Pick your company.</p>
+    <div class="langrow">
+      <div class="seg" role="group" aria-label="Language">
+        <button id="lSalty" aria-pressed="true">Salty</button>
+        <button id="lClean" aria-pressed="false">Clean</button>
+      </div>
+    </div>
+    <h4>Reset</h4>
+    <p>Clears your streak, stats and today's result. Cannot be undone.</p>
+    <div class="langrow"><div class="seg"><button id="wipe">Erase my data</button></div></div>
+    <button class="close" id="sClose">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SUITS=[{s:'\u2660',c:'black'},{s:'\u2665',c:'red'},{s:'\u2666',c:'red'},{s:'\u2663',c:'black'}];
+  var LABELS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+  /* ===================================================================
+     FROZEN AT LAUNCH. Changing EPOCH renumbers every puzzle; changing the
+     hash or shuffle changes today's deck under players mid-game; renaming
+     any storage key wipes everyone's streak. Treat all three as permanent.
+     Rollover is LOCAL midnight (as Wordle does), so players in different
+     timezones are on different puzzle numbers at the same instant.
+     =================================================================== */
+  var EPOCH=Date.UTC(2026,6,1);   // puzzle #1 = 1 July 2026
+  var K={res:'nl.result.',streakN:'nl.streak.count',streakD:'nl.streak.date',
+         stats:'nl.stats',lang:'nl.lang'};
+
+  var el=function(i){return document.getElementById(i)};
+  var gridEl=el('grid'),msgEl=el('msg'),promptEl=el('prompt');
+  var callBtns=[].slice.call(document.querySelectorAll('.call'));
+  var deck,slots,sel,streak,best,over,seen,reviving;
+  var hard=false,aceHigh=false,daily=true,dayStreak=0,storageOK=true,clean=false;
+
+  function get(k){try{return window.localStorage.getItem(k)}catch(e){storageOK=false;return null}}
+  function set(k,v){try{window.localStorage.setItem(k,v)}catch(e){storageOK=false}}
+  function del(k){try{window.localStorage.removeItem(k)}catch(e){}}
+
+  function mulberry32(a){
+    return function(){
+      a|=0;a=a+0x6D2B79F5|0;
+      var t=Math.imul(a^a>>>15,1|a);
+      t=t+Math.imul(t^t>>>7,61|t)^t;
+      return ((t^t>>>14)>>>0)/4294967296;
+    };
+  }
+  function hash(str){
+    var h=2166136261,i;
+    for(i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
+    return h>>>0;
+  }
+  function dayKey(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+  function todayKey(){return dayKey(new Date())}
+  function puzzleNo(){
+    var d=new Date();
+    return Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-EPOCH)/86400000)+1;
+  }
+  function val(c){return (c.r===1&&aceHigh)?14:c.r}
+
+  function build(rand){
+    var d=[],i,j,t;
+    for(i=0;i<SUITS.length;i++)for(j=0;j<13;j++)d.push({r:j+1,lb:LABELS[j],s:SUITS[i].s,c:SUITS[i].c});
+    for(i=d.length-1;i>0;i--){j=Math.floor(rand()*(i+1));t=d[i];d[i]=d[j];d[j]=t;}
+    return d;
+  }
+
+  function start(){
+    var rand=daily?mulberry32(hash('nine-lives-'+todayKey())):Math.random;
+    deck=build(rand);
+    seen={red:0,black:0,ranks:[]};
+    for(var z=0;z<14;z++)seen.ranks[z]=0;
+    slots=[];
+    for(var i=0;i<9;i++){var c=deck.pop();count(c);slots.push({card:c,dead:false,fresh:true,hits:0,touched:false});}
+    sel=null;streak=0;best=0;over=null;reviving=false;
+    el('overBox').innerHTML='';
+    say(daily?'Daily deal \u2014 same nine cards as everyone else today.'
+             :'Ace is '+(aceHigh?'high':'low')+'. A correct Same call brings a burned slot back.','');
+    if(daily){
+      var prev=get(K.res+todayKey());
+      if(prev){try{showResult(JSON.parse(prev),true)}catch(e){}}
+    }
+    render();
+  }
+
+  function count(c){seen[c.c]++;seen.ranks[c.r]++;}
+  function say(h,k){msgEl.innerHTML=h;msgEl.className='msg'+(k?' '+k:'');}
+  function name(c){return '<b'+(c.c==='red'?' class="rd"':'')+'>'+c.lb+c.s+'</b>';}
+  function faceHTML(c,ghost){
+    return '<div class="card '+c.c+(ghost?' ghost':'')+'">'+
+      '<div class="corner">'+c.lb+'<small>'+c.s+'</small></div>'+
+      '<div class="pip">'+c.s+'</div>'+
+      '<div class="corner flip">'+c.lb+'<small>'+c.s+'</small></div></div>';
+  }
+
+  function render(){
+    gridEl.innerHTML='';
+    slots.forEach(function(sl,i){
+      var b=document.createElement('button');
+      var cls='slot'+(sl.fresh?' dealing':'');
+      sl.fresh=false;
+      b.setAttribute('aria-pressed',sel===i?'true':'false');
+      if(sl.dead){
+        var canPick=reviving;
+        if(canPick)cls+=' revivable';
+        b.className=cls;b.disabled=!canPick;
+        if(!hard||canPick){
+          b.innerHTML=faceHTML(sl.card,true);
+          b.setAttribute('aria-label','Burned slot, killed by '+sl.card.lb+' '+sl.card.s);
+        }else{
+          b.innerHTML='<div class="back"><span>\u2756</span></div>';
+          b.setAttribute('aria-label','Burned slot');
+        }
+        if(canPick)b.onclick=function(){revive(i)};
+      }else{
+        b.className=cls;b.disabled=!!over||reviving;
+        b.innerHTML=faceHTML(sl.card,false);
+        b.setAttribute('aria-label',sl.card.lb+' '+sl.card.s);
+        b.onclick=function(){sel=(sel===i?null:i);render();};
+      }
+      gridEl.appendChild(b);
+    });
+
+    var alive=slots.filter(function(s){return !s.dead}).length;
+    el('sDeck').textContent=deck.length;
+    el('sAlive').textContent=alive;
+    el('sStreak').textContent=daily?dayStreak:streak;
+    el('sStreakLbl').textContent=daily?'Day streak':'Streak';
+    el('stDeck').className='stat'+(hard?' hide':'');
+    el('puz').textContent=daily?('Puzzle #'+puzzleNo()+' \u00b7 '+todayKey()):'Endless mode';
+
+    var active=sel!==null&&!over&&!reviving;
+    callBtns.forEach(function(b){b.disabled=!active});
+    promptEl.className='prompt'+(reviving?' alert':'');
+    promptEl.textContent=reviving?'Pick a burned slot to bring back'
+      :over?'Game over'
+      :active?'Calling on '+slots[sel].card.lb+slots[sel].card.s
+      :'Tap a card to call it';
+
+    el('aLow').disabled=daily;el('aHigh').disabled=daily;
+    el('tieToggle').disabled=daily;
+    el('tieLbl').className='toggle'+(daily?' dim':'');
+    el('reset').disabled=daily;
+    el('reset').textContent=daily?'One a day':'New game';
+
+    var n=el('note');
+    if(daily&&!storageOK){
+      n.hidden=false;
+      n.textContent='Private browsing or blocked storage \u2014 streaks and the one-a-day limit are off.';
+    }else n.hidden=true;
+
+    renderTracker();
+  }
+
+  function renderTracker(){
+    var t=el('tracker'),inner=el('trackerInner');
+    if(hard){
+      t.className='tracker off';
+      inner.innerHTML='<p>Hard mode<br>No counts, no memory<br>Play it blind</p>';
+      return;
+    }
+    t.className='tracker';
+    var rl=26-seen.red,bl=26-seen.black,tot=(rl+bl)||1,pct=(deck.length/43)*100,i;
+    var order=[];
+    for(i=1;i<=13;i++)order.push(i);
+    if(aceHigh){order.shift();order.push(1);}
+    var rankHTML='';
+    order.forEach(function(r){
+      var left=4-seen.ranks[r];
+      rankHTML+='<div class="rk"><div class="lb">'+LABELS[r-1]+'</div><div class="ct'+(left===0?' zero':'')+'">'+left+'</div></div>';
+    });
+    inner.innerHTML=
+      '<div class="bigcount"><div class="n">'+deck.length+'</div><div class="lb">Cards left</div>'+
+      '<div class="track"><i style="width:'+pct+'%"></i></div></div>'+
+      '<h2>Counted out</h2><div class="cols">'+
+        '<div class="col red"><div class="n">'+seen.red+'</div><div class="lb">Red taken</div><div class="sub">'+rl+' unseen</div></div>'+
+        '<div class="col"><div class="n">'+seen.black+'</div><div class="lb">Black taken</div><div class="sub">'+bl+' unseen</div></div>'+
+      '</div>'+
+      '<div class="bar"><i class="r" style="width:'+(rl/tot*100)+'%"></i><i class="b" style="width:'+(bl/tot*100)+'%"></i></div>'+
+      '<div class="barlb"><span>Red unseen</span><span>Black unseen</span></div>'+
+      '<h2>Ranks unseen</h2><div class="ranks">'+rankHTML+'</div>';
+  }
+
+  function revive(i){
+    slots[i].dead=false;slots[i].fresh=true;reviving=false;
+    say('Slot restored \u2014 '+name(slots[i].card)+' is back in play.','revive');
+    checkEnd();render();
+  }
+
+  /* ---------- share grid ---------- */
+  var shareStyle='tier';
+  var KEYCAP=['0\uFE0F\u20E3','1\uFE0F\u20E3','2\uFE0F\u20E3','3\uFE0F\u20E3','4\uFE0F\u20E3',
+              '5\uFE0F\u20E3','6\uFE0F\u20E3','7\uFE0F\u20E3','8\uFE0F\u20E3','9\uFE0F\u20E3','\uD83D\uDD1F'];
+  function tierMark(b){
+    if(!b.touched)return '\u2B1B';
+    if(b.hits>=7)return '\uD83D\uDFE9';
+    if(b.hits>=3)return '\uD83D\uDFE8';
+    return '\uD83D\uDFE5';
+  }
+  function boxStr(b){
+    if(shareStyle==='keycap')return b.touched?(b.hits<=10?KEYCAP[b.hits]:String(b.hits)):'\u2B1B';
+    return tierMark(b)+b.hits;
+  }
+  function shareGrid(boxes){
+    var out=[],r,c,row;
+    for(r=0;r<3;r++){row=[];for(c=0;c<3;c++)row.push(boxStr(boxes[r*3+c]));out.push(row.join(' '))}
+    return out.join('\n');
+  }
+  function shareText(res){
+    return 'Nine Lives #'+res.no+'\n'+shareGrid(res.boxes)+'\n'+
+      res.cleared+'/43 \u00b7 '+res.lives+' '+(res.lives===1?'life':'lives')+' left \u00b7 '+res.diff+
+      '\n'+window.location.origin+'/';
+  }
+
+  var SALTY_LOSE=['Get fucked, idiot','Absolutely dogshit','Skill issue','That was hard to watch',
+    'Nine lives. You wasted all nine.','Your nan counts cards better','Put the deck down',
+    'Embarrassing, frankly','You had nine jobs','Deck 1, you nothing','Cool. Do that again.',
+    'Buy the next round, loser','Statistically impressive. In the bad way.','A disgrace to this table',
+    'Shuffle it off, champ','Even the cards are laughing'];
+  var SALTY_WIN=['Alright, calm down','Suspiciously good','Nobody likes a show-off','Fine. Well played.',
+    'Somebody check the deck','Drinks are on you now'];
+  var CLEAN_LOSE=['Not your day','The deck had other plans','Rough one','Nine lives, all spent',
+    'So close to something','Try that again','The cards were unkind','Back to the table',
+    'Well, that happened','Onwards'];
+  var CLEAN_WIN=['Beautifully done','Cool head','That was clean','Textbook','Nicely judged','Take a bow'];
+  function quip(won){
+    var l=won?(clean?CLEAN_WIN:SALTY_WIN):(clean?CLEAN_LOSE:SALTY_LOSE);
+    return l[Math.floor(Math.random()*l.length)];
+  }
+
+  function showResult(res,replay){
+    var kind=res.won?'win':'lose';
+    var html='<div class="endcard '+kind+'">'+
+      '<div class="quip">'+quip(res.won)+'</div>'+
+      '<h3>'+(res.won?'Winner':'Loser')+'</h3>'+
+      '<pre class="emoji" id="gridPre">'+shareGrid(res.boxes)+'</pre>'+
+      '<p><b>'+res.cleared+'</b>/43 cleared &middot; <b>'+res.lives+'</b> left &middot; '+res.diff+
+      (res.daily&&replay?'<br>Already played today':'')+'</p>';
+    if(res.daily){
+      html+='<div class="row"><button id="shareBtn">Copy result</button>'+
+        '<button class="ghostbtn" id="styleBtn">Style</button>'+
+        '<button class="ghostbtn" id="endlessBtn">Endless</button></div>'+
+        '<textarea id="fallbackBox" class="fallback" readonly hidden rows="5"></textarea>';
+    }else{
+      html+='<div class="row"><button id="againBtn">Deal again</button>'+
+        '<button class="ghostbtn" id="styleBtn">Style</button></div>';
+    }
+    el('overBox').innerHTML=html+'</div>';
+    over=res.won?'win':'lose';
+
+    var a=el('againBtn');if(a){a.onclick=start;a.focus()}
+    var e=el('endlessBtn');if(e)e.onclick=function(){setMode(false)};
+    var st=el('styleBtn');
+    if(st)st.onclick=function(){
+      shareStyle=(shareStyle==='tier')?'keycap':'tier';
+      el('gridPre').textContent=shareGrid(res.boxes);
+    };
+    var s=el('shareBtn');
+    if(s){s.focus();s.onclick=function(){copyResult(shareText(res),s)}}
+  }
+
+  /* Clipboard is blocked in sandboxed iframes and some in-app browsers, so this
+     degrades: async API -> execCommand -> visible pre-selected textarea. */
+  function copyResult(txt,btn){
+    var flash=function(ok){
+      btn.textContent=ok?'Copied':'Select & copy';
+      setTimeout(function(){btn.textContent='Copy result'},1800);
+    };
+    var manual=function(){
+      var box=el('fallbackBox');
+      if(box){box.hidden=false;box.value=txt;box.focus();box.select();box.setSelectionRange(0,txt.length)}
+      flash(false);
+    };
+    var legacy=function(){
+      try{
+        var ta=document.createElement('textarea');
+        ta.value=txt;ta.setAttribute('readonly','');
+        ta.style.cssText='position:fixed;top:0;left:0;opacity:0';
+        document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,txt.length);
+        var ok=document.execCommand('copy');
+        document.body.removeChild(ta);
+        if(ok)flash(true);else manual();
+      }catch(e){manual()}
+    };
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){flash(true)},legacy);
+    }else legacy();
+  }
+
+  function readStats(){
+    try{return JSON.parse(get(K.stats))||{}}catch(e){return {}}
+  }
+  function finish(won){
+    var alive=slots.filter(function(s){return !s.dead}).length;
+    var res={won:won,cleared:43-deck.length,lives:alive,best:best,daily:daily,
+             no:puzzleNo(),diff:hard?'Hard':'Easy',
+             boxes:slots.map(function(s){return {hits:s.hits,touched:s.touched}})};
+    if(daily&&!get(K.res+todayKey())){
+      set(K.res+todayKey(),JSON.stringify(res));
+      var last=get(K.streakD),cnt=parseInt(get(K.streakN)||'0',10);
+      var y=new Date();y.setDate(y.getDate()-1);
+      if(last!==todayKey()){
+        dayStreak=(last===dayKey(y))?cnt+1:1;
+        set(K.streakN,String(dayStreak));set(K.streakD,todayKey());
+      }
+      var st=readStats();
+      st.played=(st.played||0)+1;
+      if(won)st.wins=(st.wins||0)+1;
+      if(res.cleared>(st.bestClear||0))st.bestClear=res.cleared;
+      if(dayStreak>(st.maxStreak||0))st.maxStreak=dayStreak;
+      set(K.stats,JSON.stringify(st));
+    }
+    showResult(res,false);
+  }
+  function checkEnd(){
+    var alive=slots.filter(function(s){return !s.dead}).length;
+    if(alive===0)finish(false);
+    else if(deck.length===0)finish(true);
+  }
+
+  function play(call){
+    if(sel===null||over||reviving)return;
+    var slot=slots[sel],base=slot.card,drawn=deck.pop();
+    count(drawn);
+    var tie=val(drawn)===val(base),win;
+    if(call==='higher')win=val(drawn)>val(base);
+    else if(call==='lower')win=val(drawn)<val(base);
+    else if(call==='same')win=tie;
+    else if(call==='red')win=drawn.c==='red';
+    else win=drawn.c==='black';
+
+    var isHL=(call==='higher'||call==='lower');
+    var pushed=isHL&&tie&&el('tieToggle').checked&&!daily&&!win;
+    var head=name(base)+' \u00b7 '+call+' \u2192 '+name(drawn);
+    var burned=slots.filter(function(s){return s.dead}).length;
+    sel=null;slot.touched=true;
+
+    if(pushed){
+      say(head+'<br>Tie. Push \u2014 the slot stands.','');
+    }else if(win){
+      slot.card=drawn;slot.fresh=true;slot.hits++;streak++;if(streak>best)best=streak;
+      if(call==='same'&&burned>0){
+        reviving=true;
+        say(head+'<br>Same, called and hit. Choose a burned slot to bring back.','revive');
+        render();return;
+      }
+      say(head+'<br>Correct.'+(call==='same'?' Nothing burned to revive.':''),'good');
+    }else{
+      slot.card=drawn;slot.dead=true;streak=0;
+      say(head+'<br>Wrong. That slot burns.','bad');
+    }
+    checkEnd();render();
+  }
+
+  /* ---------- controls ---------- */
+  callBtns.forEach(function(b){b.onclick=function(){play(b.dataset.call)}});
+  el('reset').onclick=function(){if(!daily)start()};
+  function press(onId,offId){
+    el(onId).setAttribute('aria-pressed','true');
+    el(offId).setAttribute('aria-pressed','false');
+  }
+  function setMode(isDaily){
+    daily=isDaily;
+    press(isDaily?'gDaily':'gEndless',isDaily?'gEndless':'gDaily');
+    if(isDaily){aceHigh=false;press('aLow','aHigh');el('tieToggle').checked=false}
+    dayStreak=parseInt(get(K.streakN)||'0',10);
+    start();
+  }
+  el('gDaily').onclick=function(){setMode(true)};
+  el('gEndless').onclick=function(){setMode(false)};
+  el('mEasy').onclick=function(){hard=false;press('mEasy','mHard');render()};
+  el('mHard').onclick=function(){hard=true;press('mHard','mEasy');render()};
+  el('aLow').onclick=function(){if(daily)return;aceHigh=false;press('aLow','aHigh');render()};
+  el('aHigh').onclick=function(){if(daily)return;aceHigh=true;press('aHigh','aLow');render()};
+
+  /* ---------- modals, with focus trapped and restored ---------- */
+  var lastFocus=null;
+  function openModal(scrim,firstBtn){
+    lastFocus=document.activeElement;
+    scrim.hidden=false;firstBtn.focus();
+  }
+  function closeModal(scrim){
+    scrim.hidden=true;
+    if(lastFocus&&lastFocus.focus)lastFocus.focus();
+  }
+  function trap(e,scrim){
+    if(e.key!=='Tab')return;
+    var f=scrim.querySelectorAll('button,[href],input,textarea,select');
+    if(!f.length)return;
+    var first=f[0],last=f[f.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+  }
+
+  var scrim=el('scrim'),statScrim=el('statScrim');
+  el('help').onclick=function(){openModal(scrim,el('mClose'))};
+  el('mClose').onclick=function(){closeModal(scrim)};
+  scrim.onclick=function(e){if(e.target===scrim)closeModal(scrim)};
+
+  function renderStats(){
+    var st=readStats(),played=st.played||0,wins=st.wins||0;
+    var pct=played?Math.round(wins/played*100):0;
+    el('statGrid').innerHTML=
+      '<div class="statbox"><div class="n">'+played+'</div><div class="l">Played</div></div>'+
+      '<div class="statbox"><div class="n">'+pct+'%</div><div class="l">Win rate</div></div>'+
+      '<div class="statbox"><div class="n">'+dayStreak+'</div><div class="l">Streak</div></div>'+
+      '<div class="statbox"><div class="n">'+(st.maxStreak||0)+'</div><div class="l">Best streak</div></div>';
+  }
+  el('stats').onclick=function(){renderStats();openModal(statScrim,el('sClose'))};
+  el('sClose').onclick=function(){closeModal(statScrim)};
+  statScrim.onclick=function(e){if(e.target===statScrim)closeModal(statScrim)};
+
+  function setLang(isClean){
+    clean=isClean;
+    press(isClean?'lClean':'lSalty',isClean?'lSalty':'lClean');
+    set(K.lang,isClean?'clean':'salty');
+  }
+  el('lSalty').onclick=function(){setLang(false)};
+  el('lClean').onclick=function(){setLang(true)};
+  el('wipe').onclick=function(){
+    if(!window.confirm('Erase your streak, stats and today\u2019s result?'))return;
+    del(K.streakN);del(K.streakD);del(K.stats);del(K.res+todayKey());
+    dayStreak=0;renderStats();closeModal(statScrim);start();
+  };
+
+  function syncTracker(){if(window.innerWidth>=820)el('trkWrap').open=true}
+  window.addEventListener('resize',syncTracker);
+  syncTracker();
+
+  document.addEventListener('keydown',function(e){
+    var openScrim=!scrim.hidden?scrim:(!statScrim.hidden?statScrim:null);
+    if(openScrim){
+      if(e.key==='Escape')closeModal(openScrim);
+      trap(e,openScrim);
+      return;
+    }
+    var k=e.key.toLowerCase();
+    var map={h:'higher',l:'lower',s:'same',r:'red',b:'black'};
+    if(map[k]&&sel!==null&&!over&&!reviving)play(map[k]);
+    if(k>='1'&&k<='9'){
+      var i=+k-1;
+      if(!slots[i]||over)return;
+      if(reviving&&slots[i].dead){revive(i);return}
+      if(!slots[i].dead&&!reviving){sel=(sel===i?null:i);render()}
+    }
+  });
+
+  /* A new day while the tab sits open should roll the puzzle over. */
+  var loadedDay=todayKey();
+  setInterval(function(){
+    if(daily&&todayKey()!==loadedDay){loadedDay=todayKey();dayStreak=parseInt(get(K.streakN)||'0',10);start()}
+  },60000);
+
+  if(get(K.lang)==='clean')setLang(true);
+  dayStreak=parseInt(get(K.streakN)||'0',10);
+  start();
+})();
+</script>
+</body>
+</html>
