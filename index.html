@@ -7,7 +7,7 @@
 <meta name="description" content="Nine cards, one deck, no mercy. Call higher, lower, same, red or black and burn through the deck before all nine slots are gone. New puzzle daily.">
 <meta name="theme-color" content="#07130D">
 <meta name="color-scheme" content="dark">
- 
+
 <!-- Link previews in group chats. Replace the URL with your domain after deploying. -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Nine Lives — a daily card game">
@@ -15,13 +15,13 @@
 <meta property="og:image" content="/icon-512.png">
 <meta property="og:url" content="https://example.com">
 <meta name="twitter:card" content="summary">
- 
+
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
- 
+
 <style>
   :root{
     --bottle-deep:#07130D;
@@ -50,9 +50,9 @@
   @supports (height:100svh){
     :root{--boardw:max(240px,min(450px,calc(100vw - 28px),calc((100svh - var(--reserve)) / 1.4)))}
   }
- 
+
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html{background:var(--bottle-deep)}
+  html{background:var(--bottle-deep);overflow-x:hidden}
   body{
     font-family:var(--sans);
     background:radial-gradient(120% 70% at 50% -12%,#163023 0%,transparent 55%),var(--bottle-deep);
@@ -60,7 +60,7 @@
     display:flex;justify-content:center;
   }
   .wrap{width:100%;max-width:900px}
- 
+
   header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
   h1{font-family:var(--serif);font-weight:700;font-size:clamp(20px,4vh,28px);line-height:.95;letter-spacing:.01em}
   h1 em{font-style:italic;color:var(--brass)}
@@ -73,7 +73,7 @@
   }
   .helpbtn:hover{background:rgba(199,154,46,.18)}
   .helpbtn:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
- 
+
   .ctlbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-bottom:9px;margin-bottom:10px;border-bottom:1px solid rgba(199,154,46,.28)}
   .seg{display:flex;border:1px solid rgba(199,154,46,.4);border-radius:var(--r);overflow:hidden}
   .seg span{font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk);padding:6px 8px;background:rgba(0,0,0,.25);display:flex;align-items:center}
@@ -81,23 +81,23 @@
   .seg button[aria-pressed="true"]{background:var(--brass);color:#1A1405;font-weight:700}
   .seg button:disabled{opacity:.35;cursor:not-allowed}
   .seg button:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
- 
+
   .board{display:grid;gap:16px;grid-template-columns:1fr}
   @media(min-width:820px){.board{grid-template-columns:var(--boardw) 226px;align-items:start;gap:22px;justify-content:center}}
   .status,.gridwrap,.calls,.msg,.foot,.note{width:var(--boardw);max-width:100%}
- 
+
   .status{display:flex;gap:8px;margin-bottom:9px;font-family:var(--mono)}
   .stat{flex:1;min-width:0;border:1px solid rgba(199,154,46,.25);border-radius:var(--r);padding:4px 8px;background:rgba(255,255,255,.02)}
   .stat b{display:block;font-size:16px;font-weight:700;line-height:1.15}
   .stat span{font-size:8px;letter-spacing:.13em;text-transform:uppercase;color:var(--chalk)}
   .stat.hide{display:none}
- 
+
   .gridwrap{position:relative}
   .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
   .slot{position:relative;aspect-ratio:5/7;border:0;padding:0;background:transparent;cursor:pointer;font:inherit}
   .slot:disabled{cursor:default}
   .slot:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:5px}
- 
+
   .card{
     position:absolute;inset:0;border-radius:5px;
     background:linear-gradient(170deg,#FBF6EA,#E8DFC8);color:var(--ink);
@@ -112,7 +112,7 @@
   .corner.flip{align-self:flex-end;transform:rotate(180deg)}
   .pip{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(28px,5.5vh,42px);opacity:.9}
   .slot[aria-pressed="true"] .card{transform:translateY(-6px);box-shadow:0 2px 0 rgba(0,0,0,.35),0 12px 22px rgba(0,0,0,.5),0 0 0 2px var(--brass)}
- 
+
   .back{
     position:absolute;inset:0;border-radius:5px;
     background:repeating-linear-gradient(45deg,rgba(199,154,46,.16) 0 2px,transparent 2px 7px),
@@ -127,7 +127,7 @@
   @keyframes pulse{50%{transform:translateY(-4px)}}
   .slot.dealing .card{animation:deal .26s ease both}
   @keyframes deal{from{transform:translateY(-12px) scale(.9);opacity:0}to{transform:none;opacity:1}}
- 
+
   .calls{margin-top:11px}
   .prompt{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk);margin-bottom:6px;min-height:13px}
   .prompt.alert{color:var(--brass)}
@@ -150,14 +150,14 @@
   button.call.black-c{background:linear-gradient(170deg,#232A2E,var(--coal));border-color:#4A555B;color:#EDF1F3;box-shadow:0 2px 0 #000,0 4px 12px rgba(0,0,0,.5)}
   button.call.black-c:hover:not(:disabled){background:linear-gradient(170deg,#2E373C,#171D21)}
   button.call.red-c .gl,button.call.black-c .gl{font-size:15px}
- 
+
   .msg{margin-top:10px;padding:9px 11px;border-radius:var(--r);border-left:3px solid var(--brass);background:rgba(255,255,255,.035);font-size:12.5px;line-height:1.4;min-height:38px;display:flex;align-items:center}
   .msg.good{border-left-color:#5FA36B}
   .msg.bad{border-left-color:var(--ox)}
   .msg.revive{border-left-color:var(--brass);background:rgba(199,154,46,.12)}
   .msg b{font-family:var(--serif);font-size:15px}
   .msg .rd{color:#E9938E}
- 
+
   .endcard{
     position:absolute;inset:-6px;z-index:5;border-radius:8px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
@@ -184,12 +184,12 @@
   .fallback{width:100%;margin-top:8px;padding:8px;border-radius:var(--r);resize:none;font-family:var(--mono);font-size:11px;line-height:1.5;text-align:center;background:rgba(0,0,0,.5);color:var(--cream);border:1px solid rgba(199,154,46,.5)}
   .fallback:focus{outline:2px solid var(--brass);outline-offset:1px}
   @keyframes stamp{0%{opacity:0;transform:scale(1.45) rotate(-5deg)}55%{opacity:1}100%{opacity:1;transform:none}}
- 
+
   .trkWrap summary{list-style:none;cursor:pointer;margin-top:4px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);padding:8px 12px;border:1px solid rgba(199,154,46,.4);border-radius:var(--r);width:var(--boardw);max-width:100%;text-align:center}
   .trkWrap summary::-webkit-details-marker{display:none}
   .trkWrap[open] summary{margin-bottom:8px}
   @media(min-width:820px){.trkWrap summary{display:none}.trkWrap[open] summary{margin:0}}
- 
+
   .tracker{border:1px solid rgba(199,154,46,.25);border-radius:var(--r);padding:11px;background:rgba(255,255,255,.02)}
   .tracker h2{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);margin-bottom:8px}
   .tracker.off{display:flex;align-items:center;justify-content:center;min-height:84px;text-align:center}
@@ -215,7 +215,7 @@
   .rk .lb{font-family:var(--serif);font-size:10px;color:var(--cream-dim);line-height:1.3}
   .rk .ct{font-family:var(--mono);font-size:8.5px;padding:1px 0;border-radius:2px;background:rgba(199,154,46,.18)}
   .rk .ct.zero{background:rgba(0,0,0,.4);color:#4C6155}
- 
+
   .foot{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .toggle{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;color:var(--chalk);display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:uppercase}
   .toggle input{accent-color:var(--brass);width:14px;height:14px;cursor:pointer}
@@ -224,7 +224,7 @@
   button.reset:hover{background:rgba(199,154,46,.15)}
   button.reset:disabled{opacity:.3;cursor:not-allowed}
   .note{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--brass-dim);margin-top:8px;line-height:1.6}
- 
+
   .scrim{position:fixed;inset:0;z-index:50;background:rgba(4,10,7,.84);display:flex;align-items:center;justify-content:center;padding:18px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
   .scrim[hidden]{display:none}
   .modal{background:#0E1F17;border:1px solid rgba(199,154,46,.45);border-radius:6px;max-width:460px;width:100%;max-height:86vh;overflow:auto;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
@@ -244,14 +244,14 @@
   .statbox .n{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--brass);line-height:1}
   .statbox .l{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk);margin-top:5px;line-height:1.3}
   .langrow{display:flex;align-items:center;gap:9px;margin-top:6px}
- 
+
   /* ---- mobile layout: status strip and call buttons go edge to edge, board centres ---- */
   @media(max-width:819px){
     /* Title centres; the two round buttons pin to the right edge without shifting it. */
     header{position:relative;justify-content:center;text-align:center;margin-bottom:8px}
     header>div:first-child{width:100%}
     .hbtns{position:absolute;right:0;top:50%;transform:translateY(-50%)}
- 
+
     /* All three control groups share one line; their labels stack above the buttons. */
     .ctlbar{gap:6px;flex-wrap:nowrap;padding-bottom:8px;margin-bottom:9px}
     .seg{flex:1 1 0;min-width:0;flex-wrap:wrap}
@@ -260,9 +260,10 @@
       font-size:7px;letter-spacing:.12em;padding:3px 2px;
     }
     .seg button{flex:1 1 0;min-width:0;padding:5px 2px;font-size:8px;letter-spacing:.04em}
- 
+
     .status{
-      width:calc(100% + 28px);margin:0 -14px 8px;gap:0;
+      width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
+      margin-bottom:8px;gap:0;
       border-top:1px solid rgba(199,154,46,.25);
       border-bottom:1px solid rgba(199,154,46,.25);
       background:rgba(255,255,255,.02);
@@ -274,28 +275,31 @@
     .stat+.stat{border-left:1px solid rgba(199,154,46,.18)}
     .stat b{font-size:14px}
     .stat span{font-size:8px;white-space:nowrap}
- 
+
     .gridwrap,.msg,.foot,.note,.trkWrap summary{margin-left:auto;margin-right:auto}
- 
-    .calls{width:calc(100% + 28px);margin:9px -14px 0;padding:0 10px}
+
+    .calls{
+      width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
+      margin-top:9px;padding:0 12px;
+    }
     .prompt{text-align:center;margin-bottom:5px;min-height:12px}
     .btns{gap:6px}
     .btns .wide{gap:6px}
     button.call{padding:7px 4px;gap:1px;font-size:10.5px}
     button.call .gl{font-size:14px}
     button.call.red-c .gl,button.call.black-c .gl{font-size:12px}
- 
+
     .msg{justify-content:center;text-align:center}
     .note{text-align:center}
     .foot{justify-content:center}
     .foot button.reset{margin-left:0}
   }
- 
+
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
- 
+
 <div class="wrap">
   <header>
     <div>
@@ -307,7 +311,7 @@
       <button class="helpbtn" id="help" aria-label="How to play">?</button>
     </div>
   </header>
- 
+
   <div class="ctlbar">
     <div class="seg" role="group" aria-label="Game mode">
       <span>Mode</span>
@@ -325,7 +329,7 @@
       <button id="aHigh" aria-pressed="false">High</button>
     </div>
   </div>
- 
+
   <div class="board">
     <div>
       <div class="status">
@@ -333,9 +337,9 @@
         <div class="stat"><b id="sAlive">9</b><span>Lives</span></div>
         <div class="stat"><b id="sStreak">0</b><span id="sStreakLbl">Streak</span></div>
       </div>
- 
+
       <div class="gridwrap"><div class="grid" id="grid"></div><div id="overBox"></div></div>
- 
+
       <div class="calls">
         <div class="prompt" id="prompt">Tap a card to call it</div>
         <div class="btns">
@@ -348,23 +352,23 @@
           </div>
         </div>
       </div>
- 
+
       <div class="msg" id="msg">Ace is low. A correct Same call brings a burned slot back.</div>
       <div class="note" id="note" hidden></div>
- 
+
       <div class="foot">
         <label class="toggle" id="tieLbl"><input type="checkbox" id="tieToggle"> Tie is a push</label>
         <button class="reset" id="reset">New game</button>
       </div>
     </div>
- 
+
     <details id="trkWrap" class="trkWrap">
       <summary>Counts &amp; tracker</summary>
       <aside id="tracker" class="tracker"><div id="trackerInner"></div></aside>
     </details>
   </div>
 </div>
- 
+
 <div class="scrim" id="scrim" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
     <h2 id="mTitle">How to <em>play</em></h2>
@@ -397,7 +401,7 @@
     <button class="close" id="mClose">Got it</button>
   </div>
 </div>
- 
+
 <div class="scrim" id="statScrim" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sTitle">
     <h2 id="sTitle">Your <em>record</em></h2>
@@ -417,12 +421,12 @@
     <button class="close" id="sClose">Close</button>
   </div>
 </div>
- 
+
 <script>
 (function(){
   var SUITS=[{s:'\u2660',c:'black'},{s:'\u2665',c:'red'},{s:'\u2666',c:'red'},{s:'\u2663',c:'black'}];
   var LABELS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
- 
+
   /* ===================================================================
      FROZEN AT LAUNCH. Changing EPOCH renumbers every puzzle; changing the
      hash or shuffle changes today's deck under players mid-game; renaming
@@ -430,20 +434,20 @@
      Rollover is LOCAL midnight (as Wordle does), so players in different
      timezones are on different puzzle numbers at the same instant.
      =================================================================== */
-  var EPOCH=Date.UTC(2026,6,27);   // puzzle #1 = 27 July 2026
+  var EPOCH=Date.UTC(2026,6,27);  // puzzle #1 = 27 July 2026
   var K={res:'nl.result.',streakN:'nl.streak.count',streakD:'nl.streak.date',
          stats:'nl.stats',lang:'nl.lang'};
- 
+
   var el=function(i){return document.getElementById(i)};
   var gridEl=el('grid'),msgEl=el('msg'),promptEl=el('prompt');
   var callBtns=[].slice.call(document.querySelectorAll('.call'));
   var deck,slots,sel,streak,best,over,seen,reviving;
   var hard=false,aceHigh=false,daily=true,dayStreak=0,storageOK=true,clean=false;
- 
+
   function get(k){try{return window.localStorage.getItem(k)}catch(e){storageOK=false;return null}}
   function set(k,v){try{window.localStorage.setItem(k,v)}catch(e){storageOK=false}}
   function del(k){try{window.localStorage.removeItem(k)}catch(e){}}
- 
+
   function mulberry32(a){
     return function(){
       a|=0;a=a+0x6D2B79F5|0;
@@ -464,14 +468,14 @@
     return Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-EPOCH)/86400000)+1;
   }
   function val(c){return (c.r===1&&aceHigh)?14:c.r}
- 
+
   function build(rand){
     var d=[],i,j,t;
     for(i=0;i<SUITS.length;i++)for(j=0;j<13;j++)d.push({r:j+1,lb:LABELS[j],s:SUITS[i].s,c:SUITS[i].c});
     for(i=d.length-1;i>0;i--){j=Math.floor(rand()*(i+1));t=d[i];d[i]=d[j];d[j]=t;}
     return d;
   }
- 
+
   function start(){
     var rand=daily?mulberry32(hash('nine-lives-'+todayKey())):Math.random;
     deck=build(rand);
@@ -489,7 +493,7 @@
     }
     render();
   }
- 
+
   function count(c){seen[c.c]++;seen.ranks[c.r]++;}
   function say(h,k){msgEl.innerHTML=h;msgEl.className='msg'+(k?' '+k:'');}
   function name(c){return '<b'+(c.c==='red'?' class="rd"':'')+'>'+c.lb+c.s+'</b>';}
@@ -499,7 +503,7 @@
       '<div class="pip">'+c.s+'</div>'+
       '<div class="corner flip">'+c.lb+'<small>'+c.s+'</small></div></div>';
   }
- 
+
   function render(){
     gridEl.innerHTML='';
     slots.forEach(function(sl,i){
@@ -527,7 +531,7 @@
       }
       gridEl.appendChild(b);
     });
- 
+
     var alive=slots.filter(function(s){return !s.dead}).length;
     el('sDeck').textContent=deck.length;
     el('sAlive').textContent=alive;
@@ -535,7 +539,7 @@
     el('sStreakLbl').textContent=daily?'Day streak':'Streak';
     el('stDeck').className='stat'+(hard?' hide':'');
     el('puz').textContent=daily?('Puzzle #'+puzzleNo()+' \u00b7 '+todayKey()):'Endless mode';
- 
+
     var active=sel!==null&&!over&&!reviving;
     callBtns.forEach(function(b){b.disabled=!active});
     promptEl.className='prompt'+(reviving?' alert':'');
@@ -543,22 +547,22 @@
       :over?'Game over'
       :active?'Calling on '+slots[sel].card.lb+slots[sel].card.s
       :'Tap a card to call it';
- 
+
     el('aLow').disabled=daily;el('aHigh').disabled=daily;
     el('tieToggle').disabled=daily;
     el('tieLbl').className='toggle'+(daily?' dim':'');
     el('reset').disabled=daily;
     el('reset').textContent=daily?'One a day':'New game';
- 
+
     var n=el('note');
     if(daily&&!storageOK){
       n.hidden=false;
       n.textContent='Private browsing or blocked storage \u2014 streaks and the one-a-day limit are off.';
     }else n.hidden=true;
- 
+
     renderTracker();
   }
- 
+
   function renderTracker(){
     var t=el('tracker'),inner=el('trackerInner');
     if(hard){
@@ -587,13 +591,13 @@
       '<div class="barlb"><span>Red unseen</span><span>Black unseen</span></div>'+
       '<h2>Ranks unseen</h2><div class="ranks">'+rankHTML+'</div>';
   }
- 
+
   function revive(i){
     slots[i].dead=false;slots[i].fresh=true;reviving=false;
     say('Slot restored \u2014 '+name(slots[i].card)+' is back in play.','revive');
     checkEnd();render();
   }
- 
+
   /* ---------- share grid ---------- */
   var shareStyle='tier';
   var KEYCAP=['0\uFE0F\u20E3','1\uFE0F\u20E3','2\uFE0F\u20E3','3\uFE0F\u20E3','4\uFE0F\u20E3',
@@ -618,7 +622,7 @@
       res.cleared+'/43 \u00b7 '+res.lives+' '+(res.lives===1?'life':'lives')+' left \u00b7 '+res.diff+
       '\n'+window.location.origin+'/';
   }
- 
+
   var SALTY_LOSE=['Get fucked, idiot','Absolutely dogshit','Skill issue','That was hard to watch',
     'Nine lives. You wasted all nine.','Your nan counts cards better','Put the deck down',
     'Embarrassing, frankly','You had nine jobs','Deck 1, you nothing','Cool. Do that again.',
@@ -634,7 +638,7 @@
     var l=won?(clean?CLEAN_WIN:SALTY_WIN):(clean?CLEAN_LOSE:SALTY_LOSE);
     return l[Math.floor(Math.random()*l.length)];
   }
- 
+
   function showResult(res,replay){
     var kind=res.won?'win':'lose';
     var html='<div class="endcard '+kind+'">'+
@@ -654,7 +658,7 @@
     }
     el('overBox').innerHTML=html+'</div>';
     over=res.won?'win':'lose';
- 
+
     var a=el('againBtn');if(a){a.onclick=start;a.focus()}
     var e=el('endlessBtn');if(e)e.onclick=function(){setMode(false)};
     var st=el('styleBtn');
@@ -665,7 +669,7 @@
     var s=el('shareBtn');
     if(s){s.focus();s.onclick=function(){copyResult(shareText(res),s)}}
   }
- 
+
   /* Clipboard is blocked in sandboxed iframes and some in-app browsers, so this
      degrades: async API -> execCommand -> visible pre-selected textarea. */
   function copyResult(txt,btn){
@@ -693,7 +697,7 @@
       navigator.clipboard.writeText(txt).then(function(){flash(true)},legacy);
     }else legacy();
   }
- 
+
   function readStats(){
     try{return JSON.parse(get(K.stats))||{}}catch(e){return {}}
   }
@@ -724,7 +728,7 @@
     if(alive===0)finish(false);
     else if(deck.length===0)finish(true);
   }
- 
+
   function play(call){
     if(sel===null||over||reviving)return;
     var slot=slots[sel],base=slot.card,drawn=deck.pop();
@@ -735,13 +739,13 @@
     else if(call==='same')win=tie;
     else if(call==='red')win=drawn.c==='red';
     else win=drawn.c==='black';
- 
+
     var isHL=(call==='higher'||call==='lower');
     var pushed=isHL&&tie&&el('tieToggle').checked&&!daily&&!win;
     var head=name(base)+' \u00b7 '+call+' \u2192 '+name(drawn);
     var burned=slots.filter(function(s){return s.dead}).length;
     sel=null;slot.touched=true;
- 
+
     if(pushed){
       say(head+'<br>Tie. Push \u2014 the slot stands.','');
     }else if(win){
@@ -758,7 +762,7 @@
     }
     checkEnd();render();
   }
- 
+
   /* ---------- controls ---------- */
   callBtns.forEach(function(b){b.onclick=function(){play(b.dataset.call)}});
   el('reset').onclick=function(){if(!daily)start()};
@@ -779,7 +783,7 @@
   el('mHard').onclick=function(){hard=true;press('mHard','mEasy');render()};
   el('aLow').onclick=function(){if(daily)return;aceHigh=false;press('aLow','aHigh');render()};
   el('aHigh').onclick=function(){if(daily)return;aceHigh=true;press('aHigh','aLow');render()};
- 
+
   /* ---------- modals, with focus trapped and restored ---------- */
   var lastFocus=null;
   function openModal(scrim,firstBtn){
@@ -798,12 +802,12 @@
     if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
     else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
   }
- 
+
   var scrim=el('scrim'),statScrim=el('statScrim');
   el('help').onclick=function(){openModal(scrim,el('mClose'))};
   el('mClose').onclick=function(){closeModal(scrim)};
   scrim.onclick=function(e){if(e.target===scrim)closeModal(scrim)};
- 
+
   function renderStats(){
     var st=readStats(),played=st.played||0,wins=st.wins||0;
     var pct=played?Math.round(wins/played*100):0;
@@ -816,7 +820,7 @@
   el('stats').onclick=function(){renderStats();openModal(statScrim,el('sClose'))};
   el('sClose').onclick=function(){closeModal(statScrim)};
   statScrim.onclick=function(e){if(e.target===statScrim)closeModal(statScrim)};
- 
+
   function setLang(isClean){
     clean=isClean;
     press(isClean?'lClean':'lSalty',isClean?'lSalty':'lClean');
@@ -829,11 +833,11 @@
     del(K.streakN);del(K.streakD);del(K.stats);del(K.res+todayKey());
     dayStreak=0;renderStats();closeModal(statScrim);start();
   };
- 
+
   function syncTracker(){if(window.innerWidth>=820)el('trkWrap').open=true}
   window.addEventListener('resize',syncTracker);
   syncTracker();
- 
+
   document.addEventListener('keydown',function(e){
     var openScrim=!scrim.hidden?scrim:(!statScrim.hidden?statScrim:null);
     if(openScrim){
@@ -851,13 +855,13 @@
       if(!slots[i].dead&&!reviving){sel=(sel===i?null:i);render()}
     }
   });
- 
+
   /* A new day while the tab sits open should roll the puzzle over. */
   var loadedDay=todayKey();
   setInterval(function(){
     if(daily&&todayKey()!==loadedDay){loadedDay=todayKey();dayStreak=parseInt(get(K.streakN)||'0',10);start()}
   },60000);
- 
+
   if(get(K.lang)==='clean')setLang(true);
   dayStreak=parseInt(get(K.streakN)||'0',10);
   start();
