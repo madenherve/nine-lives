@@ -247,10 +247,15 @@
 
   /* ---- mobile layout: status strip and call buttons go edge to edge, board centres ---- */
   @media(max-width:819px){
+    /* No side padding on the body: sections that span the screen can then be plain
+       width:100%, with no negative margins and nothing wider than the viewport. */
+    body{padding-left:0;padding-right:0}
+    header,.ctlbar{padding-left:14px;padding-right:14px}
+
     /* Title centres; the two round buttons pin to the right edge without shifting it. */
     header{position:relative;justify-content:center;text-align:center;margin-bottom:8px}
     header>div:first-child{width:100%}
-    .hbtns{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+    .hbtns{position:absolute;right:14px;top:50%;transform:translateY(-50%)}
 
     /* All three control groups share one line; their labels stack above the buttons. */
     .ctlbar{gap:6px;flex-wrap:nowrap;padding-bottom:8px;margin-bottom:9px}
@@ -262,8 +267,7 @@
     .seg button{flex:1 1 0;min-width:0;padding:5px 2px;font-size:8px;letter-spacing:.04em}
 
     .status{
-      width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
-      margin-bottom:8px;gap:0;
+      width:100%;margin:0 0 8px;gap:0;
       border-top:1px solid rgba(199,154,46,.25);
       border-bottom:1px solid rgba(199,154,46,.25);
       background:rgba(255,255,255,.02);
@@ -278,10 +282,7 @@
 
     .gridwrap,.msg,.foot,.note,.trkWrap summary{margin-left:auto;margin-right:auto}
 
-    .calls{
-      width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);
-      margin-top:9px;padding:0 12px;
-    }
+    .calls{width:100%;margin-left:0;margin-right:0;margin-top:9px;padding:0 12px}
     .prompt{text-align:center;margin-bottom:5px;min-height:12px}
     .btns{gap:6px}
     .btns .wide{gap:6px}
