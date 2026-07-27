@@ -249,6 +249,37 @@
   .statbox .l{font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk);margin-top:5px;line-height:1.3}
   .langrow{display:flex;align-items:center;gap:9px;margin-top:6px}
 
+  /* ---- group leaderboard ---- */
+  .fld{width:100%;margin-top:6px;padding:10px;border-radius:var(--r);
+    font-family:var(--sans);font-size:14px;background:rgba(0,0,0,.4);
+    color:var(--cream);border:1px solid rgba(199,154,46,.4)}
+  .fld:focus{outline:2px solid var(--brass);outline-offset:1px}
+  .fld::placeholder{color:#5E7268}
+  .gbtn{margin-top:8px;width:100%;font-family:var(--mono);font-size:10px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;padding:11px;border-radius:var(--r);
+    border:0;background:var(--brass);color:#1A1405;cursor:pointer}
+  .gbtn.ghost{background:none;border:1px solid rgba(199,154,46,.5);color:var(--brass)}
+  .gbtn:disabled{opacity:.45;cursor:default}
+  .gbtn:hover:not(:disabled){opacity:.88}
+  .codebox{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 12px;border-radius:var(--r);background:rgba(199,154,46,.12);
+    border:1px solid rgba(199,154,46,.4);margin-top:6px}
+  .codebox b{font-family:var(--mono);font-size:19px;letter-spacing:.22em;color:var(--brass)}
+  .lrow{display:flex;align-items:center;gap:10px;padding:8px 4px;
+    border-bottom:1px solid rgba(199,154,46,.14)}
+  .lrow:last-child{border-bottom:0}
+  .lrow .pos{font-family:var(--mono);font-size:12px;color:var(--chalk);width:22px;flex:none}
+  .lrow .who{flex:1;min-width:0;font-size:13px;color:var(--cream);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lrow .sc{font-family:var(--mono);font-size:13px;color:var(--cream);flex:none}
+  .lrow .df{font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--chalk);border:1px solid rgba(199,154,46,.3);border-radius:2px;
+    padding:1px 4px;flex:none}
+  .lrow.me{background:rgba(199,154,46,.1);border-radius:var(--r)}
+  .lrow.me .who{color:var(--brass);font-weight:800}
+  .gnote{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--brass-dim);margin-top:10px;line-height:1.7}
+
   /* ---- mobile layout: status strip and call buttons go edge to edge, board centres ---- */
   @media(max-width:819px){
     /* No side padding on the body: sections that span the screen can then be plain
@@ -312,6 +343,7 @@
       <div class="puz" id="puz"></div>
     </div>
     <div class="hbtns">
+      <button class="helpbtn" id="group" aria-label="Group leaderboard">&#8801;</button>
       <button class="helpbtn" id="stats" aria-label="Your statistics">&#9724;</button>
       <button class="helpbtn" id="help" aria-label="How to play">?</button>
     </div>
@@ -427,6 +459,15 @@
   </div>
 </div>
 
+<div class="scrim" id="groupScrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="gTitle">
+    <h2 id="gTitle">Your <em>group</em></h2>
+    <div class="sub" id="gSub">Same puzzle, same deck, settled daily</div>
+    <div id="groupBody"></div>
+    <button class="close" id="gClose">Close</button>
+  </div>
+</div>
+
 <script>
 (function(){
   var SUITS=[{s:'\u2660',c:'black'},{s:'\u2665',c:'red'},{s:'\u2666',c:'red'},{s:'\u2663',c:'black'}];
@@ -441,7 +482,14 @@
      =================================================================== */
   var EPOCH=Date.UTC(2026,6,27);  // puzzle #1 = 27 July 2026
   var K={res:'nl.result.',streakN:'nl.streak.count',streakD:'nl.streak.date',
-         stats:'nl.stats',lang:'nl.lang'};
+         stats:'nl.stats',lang:'nl.lang',
+         pid:'nl.player.id',pname:'nl.player.name',
+         gcode:'nl.group.code',gname:'nl.group.name'};
+
+  /* Group leaderboards call a Cloudflare Worker. Paste its URL here after deploying
+     the worker/ folder — e.g. 'https://nine-lives-api.you.workers.dev'. Left empty,
+     the group panel explains it isn't set up and the rest of the game is unaffected. */
+  var API_BASE='';
 
   var el=function(i){return document.getElementById(i)};
   var gridEl=el('grid'),msgEl=el('msg'),promptEl=el('prompt');
@@ -727,6 +775,7 @@
       if(res.cleared>(st.bestClear||0))st.bestClear=res.cleared;
       if(dayStreak>(st.maxStreak||0))st.maxStreak=dayStreak;
       set(K.stats,JSON.stringify(st));
+      submitScore(res);
     }
     showResult(res,false);
   }
@@ -849,7 +898,7 @@
   syncTracker();
 
   document.addEventListener('keydown',function(e){
-    var openScrim=!scrim.hidden?scrim:(!statScrim.hidden?statScrim:null);
+    var openScrim=!scrim.hidden?scrim:(!statScrim.hidden?statScrim:(!groupScrim.hidden?groupScrim:null));
     if(openScrim){
       if(e.key==='Escape')closeModal(openScrim);
       trap(e,openScrim);
@@ -872,10 +921,199 @@
     if(daily&&todayKey()!==loadedDay){loadedDay=todayKey();dayStreak=parseInt(get(K.streakN)||'0',10);start()}
   },60000);
 
+  /* ================= group leaderboards ================= */
+  function playerId(){
+    var id=get(K.pid);
+    if(!id){
+      id='p'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+      set(K.pid,id);
+    }
+    return id;
+  }
+  function playerName(){return get(K.pname)||''}
+  function groupCode(){return get(K.gcode)||''}
+  function groupName(){return get(K.gname)||''}
+
+  function api(path,opts){
+    if(!API_BASE)return Promise.reject(new Error('not configured'));
+    return fetch(API_BASE.replace(/\/+$/,'')+path,opts).then(function(r){
+      return r.json().then(function(d){
+        if(!r.ok)throw new Error(d&&d.error?d.error:'request failed');
+        return d;
+      });
+    });
+  }
+
+  function esc(s){
+    return String(s).replace(/[&<>"]/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+
+  function submitScore(res){
+    if(!API_BASE||!groupCode()||!res.daily)return;
+    api('/api/score',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        code:groupCode(),playerId:playerId(),name:playerName()||'Anonymous',
+        puzzle:res.no,cleared:res.cleared,lives:res.lives,diff:res.diff,
+        grid:shareGrid(res.boxes).replace(/\n/g,' / ')
+      })
+    })['catch'](function(){/* leaderboard is best-effort; never block the game */});
+  }
+
+  function groupPanel(){
+    var body=el('groupBody');
+    if(!API_BASE){
+      body.innerHTML='<p>Group leaderboards need the API deployed. Set <strong>API_BASE</strong> '+
+        'at the top of the script to your Worker URL, then this panel comes alive.</p>';
+      return;
+    }
+    if(!groupCode()){
+      body.innerHTML=
+        '<h4>Your name</h4>'+
+        '<input class="fld" id="gName" maxlength="24" placeholder="What your friends call you" value="'+esc(playerName())+'">'+
+        '<h4>Start a group</h4>'+
+        '<input class="fld" id="gTitleIn" maxlength="32" placeholder="Group name">'+
+        '<button class="gbtn" id="gCreate">Create group</button>'+
+        '<h4>Or join one</h4>'+
+        '<input class="fld" id="gCodeIn" maxlength="6" placeholder="6-letter code" style="text-transform:uppercase">'+
+        '<button class="gbtn ghost" id="gJoin">Join group</button>'+
+        '<div class="gnote" id="gErr"></div>';
+      el('gCreate').onclick=function(){doCreate()};
+      el('gJoin').onclick=function(){doJoin(el('gCodeIn').value)};
+      return;
+    }
+    body.innerHTML=
+      '<h4>'+esc(groupName())+'</h4>'+
+      '<div class="codebox"><b>'+esc(groupCode())+'</b>'+
+      '<button class="gbtn ghost" id="gCopy" style="margin:0;width:auto;padding:8px 12px">Copy invite</button></div>'+
+      '<h4>Your name</h4>'+
+      '<input class="fld" id="gName" maxlength="24" placeholder="What your friends call you" value="'+esc(playerName())+'">'+
+      '<button class="gbtn ghost" id="gRename">Save name</button>'+
+      '<h4>Puzzle #'+puzzleNo()+'</h4>'+
+      '<div id="gBoard"><p>Loading\u2026</p></div>'+
+      '<div class="gnote" id="gErr">Scores post automatically when you finish the daily. '+
+      'First result of the day is the one that counts.</div>'+
+      '<button class="gbtn ghost" id="gLeave" style="margin-top:14px">Leave group</button>';
+
+    el('gCopy').onclick=function(){
+      var link=window.location.origin+'/?g='+groupCode();
+      copyResult(link,el('gCopy'));
+    };
+    el('gRename').onclick=function(){doRename()};
+    el('gLeave').onclick=function(){doLeave()};
+    loadBoard();
+  }
+
+  function doRename(){
+    var nm=el('gName').value.trim();
+    if(!nm){el('gErr').textContent='Enter a name first.';return}
+    set(K.pname,nm);
+    var btn=el('gRename');
+    btn.disabled=true;btn.textContent='Saving\u2026';
+    api('/api/name',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:groupCode(),playerId:playerId(),name:nm})
+    }).then(function(){
+      btn.textContent='Saved';
+      setTimeout(function(){if(el('gRename')){el('gRename').textContent='Save name';el('gRename').disabled=false}},1500);
+      loadBoard();
+    })['catch'](function(){
+      el('gErr').textContent='Saved on this device, but the group could not be updated.';
+      btn.textContent='Save name';btn.disabled=false;
+    });
+  }
+
+  function doLeave(){
+    if(!window.confirm('Leave '+groupName()+'? Your scores in this group are removed too.'))return;
+    var code=groupCode();
+    var done=function(){del(K.gcode);del(K.gname);groupPanel()};
+    api('/api/leave',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:code,playerId:playerId()})
+    }).then(done,done); // leave locally regardless of what the server says
+  }
+
+  function loadBoard(){
+    var target=el('gBoard');
+    if(!target)return;
+    api('/api/board?code='+encodeURIComponent(groupCode())+'&puzzle='+puzzleNo())
+      .then(function(d){
+        if(!el('gBoard'))return;
+        if(!d.rows.length){
+          el('gBoard').innerHTML='<p>Nobody has finished today yet. Be first.</p>';
+          return;
+        }
+        var me=playerId();
+        el('gBoard').innerHTML=d.rows.map(function(r,i){
+          return '<div class="lrow'+(r.player_id===me?' me':'')+'">'+
+            '<span class="pos">'+(i+1)+'</span>'+
+            '<span class="who">'+esc(r.name)+'</span>'+
+            '<span class="df">'+esc(r.diff)+'</span>'+
+            '<span class="sc">'+r.cleared+'/43</span></div>';
+        }).join('');
+      })['catch'](function(){
+        if(el('gBoard'))el('gBoard').innerHTML='<p>Could not reach the leaderboard.</p>';
+      });
+  }
+
+  function doCreate(){
+    var nm=el('gName').value.trim(),title=el('gTitleIn').value.trim();
+    if(!nm){el('gErr').textContent='Enter your name first.';return}
+    set(K.pname,nm);
+    el('gCreate').disabled=true;
+    api('/api/group',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:title||'Nine Lives',playerId:playerId(),playerName:nm})
+    }).then(function(d){
+      set(K.gcode,d.code);set(K.gname,d.name);groupPanel();
+    })['catch'](function(e){
+      el('gErr').textContent='Could not create the group.';
+      el('gCreate').disabled=false;
+    });
+  }
+
+  function doJoin(code){
+    var nm=el('gName')?el('gName').value.trim():playerName();
+    if(!nm){el('gErr').textContent='Enter your name first.';return}
+    set(K.pname,nm);
+    code=(code||'').trim().toUpperCase();
+    if(!/^[A-Z2-9]{6}$/.test(code)){
+      if(el('gErr'))el('gErr').textContent='That code does not look right.';
+      return;
+    }
+    api('/api/join',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:code,playerId:playerId(),playerName:nm})
+    }).then(function(d){
+      set(K.gcode,d.code);set(K.gname,d.name);groupPanel();
+    })['catch'](function(){
+      if(el('gErr'))el('gErr').textContent='No group with that code.';
+    });
+  }
+
+  var groupScrim=el('groupScrim');
+  el('group').onclick=function(){groupPanel();openModal(groupScrim,el('gClose'))};
+  el('gClose').onclick=function(){closeModal(groupScrim)};
+  groupScrim.onclick=function(e){if(e.target===groupScrim)closeModal(groupScrim)};
+
+  /* Invite links: /?g=CODE opens the panel with the code prefilled. */
+  (function(){
+    var m=/[?&]g=([A-Za-z2-9]{6})/.exec(window.location.search);
+    if(!m||!API_BASE)return;
+    if(groupCode()===m[1].toUpperCase())return;
+    groupPanel();
+    openModal(groupScrim,el('gClose'));
+    var f=el('gCodeIn');
+    if(f)f.value=m[1].toUpperCase();
+  })();
+
   if(get(K.lang)==='clean')setLang(true);
   dayStreak=parseInt(get(K.streakN)||'0',10);
   start();
 })();
 </script>
 </body>
+</html>
 </html>
