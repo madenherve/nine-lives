@@ -127,6 +127,10 @@
   @keyframes pulse{50%{transform:translateY(-4px)}}
   .slot.dealing .card{animation:deal .26s ease both}
   @keyframes deal{from{transform:translateY(-12px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+  /* A sticky selection keeps its slot raised, so the incoming card has to land lifted
+     rather than flat — otherwise the deal animation's end state overrides the lift. */
+  .slot.dealing[aria-pressed="true"] .card{animation:dealLifted .26s ease both}
+  @keyframes dealLifted{from{transform:translateY(-20px) scale(.9);opacity:0}to{transform:translateY(-6px);opacity:1}}
 
   .calls{margin-top:11px}
   .prompt{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk);margin-bottom:6px;min-height:13px}
