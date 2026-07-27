@@ -45,8 +45,8 @@
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
   }
   @media(min-width:820px){:root{--reserve:346px}}
-  @supports (height:100dvh){
-    :root{--boardw:max(240px,min(450px,calc(100vw - 28px),calc((100dvh - var(--reserve)) / 1.4)))}
+  @supports (height:100svh){
+    :root{--boardw:max(240px,min(450px,calc(100vw - 28px),calc((100svh - var(--reserve)) / 1.4)))}
   }
 
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
