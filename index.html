@@ -385,8 +385,8 @@
     </ul>
     <h4>Right and wrong</h4>
     <ul>
-      <li>Correct: the drawn card <strong>replaces</strong> the one you called on.</li>
-      <li>Wrong: that slot <strong>burns</strong> and shows the card that killed it, greyed out.</li>
+      <li>Correct: the drawn card <strong>replaces</strong> the one you called on, and your selection <strong>stays put</strong> &mdash; call again straight away without re-tapping.</li>
+      <li>Wrong: that slot <strong>burns</strong> and shows the card that killed it, greyed out. Selection clears.</li>
       <li>All nine burned and you're done. Clear the deck and you win.</li>
     </ul>
     <h4>The Same comeback (house rule)</h4>
@@ -442,7 +442,7 @@
   var el=function(i){return document.getElementById(i)};
   var gridEl=el('grid'),msgEl=el('msg'),promptEl=el('prompt');
   var callBtns=[].slice.call(document.querySelectorAll('.call'));
-  var deck,slots,sel,streak,best,over,seen,reviving;
+  var deck,slots,sel,streak,best,over,seen,reviving,pendingSel=null;
   var hard=false,aceHigh=false,daily=true,dayStreak=0,storageOK=true,clean=false;
 
   function get(k){try{return window.localStorage.getItem(k)}catch(e){storageOK=false;return null}}
@@ -484,7 +484,7 @@
     for(var z=0;z<14;z++)seen.ranks[z]=0;
     slots=[];
     for(var i=0;i<9;i++){var c=deck.pop();count(c);slots.push({card:c,dead:false,fresh:true,hits:0,touched:false});}
-    sel=null;streak=0;best=0;over=null;reviving=false;
+    sel=null;streak=0;best=0;over=null;reviving=false;pendingSel=null;
     el('overBox').innerHTML='';
     say(daily?'Daily deal \u2014 same nine cards as everyone else today.'
              :'Ace is '+(aceHigh?'high':'low')+'. A correct Same call brings a burned slot back.','');
@@ -595,6 +595,8 @@
 
   function revive(i){
     slots[i].dead=false;slots[i].fresh=true;reviving=false;
+    sel=(pendingSel!==null&&!slots[pendingSel].dead)?pendingSel:null;
+    pendingSel=null;
     say('Slot restored \u2014 '+name(slots[i].card)+' is back in play.','revive');
     checkEnd();render();
   }
@@ -745,20 +747,23 @@
     var pushed=isHL&&tie&&el('tieToggle').checked&&!daily&&!win;
     var head=name(base)+' \u00b7 '+call+' \u2192 '+name(drawn);
     var burned=slots.filter(function(s){return s.dead}).length;
-    sel=null;slot.touched=true;
+    var idx=sel;
+    slot.touched=true;
 
+    /* Selection is sticky: it survives a correct call so you can rattle off
+       several calls on the same slot. Only a burn drops you back to no selection. */
     if(pushed){
       say(head+'<br>Tie. Push \u2014 the slot stands.','');
     }else if(win){
       slot.card=drawn;slot.fresh=true;slot.hits++;streak++;if(streak>best)best=streak;
       if(call==='same'&&burned>0){
-        reviving=true;
+        pendingSel=idx;sel=null;reviving=true;
         say(head+'<br>Same, called and hit. Choose a burned slot to bring back.','revive');
         render();return;
       }
       say(head+'<br>Correct.'+(call==='same'?' Nothing burned to revive.':''),'good');
     }else{
-      slot.card=drawn;slot.dead=true;streak=0;
+      slot.card=drawn;slot.dead=true;streak=0;sel=null;
       say(head+'<br>Wrong. That slot burns.','bad');
     }
     checkEnd();render();
