@@ -967,8 +967,12 @@
     })['catch'](function(){/* leaderboard is best-effort; never block the game */});
   }
 
+  var invitedCode=null;
   function groupPanel(){
     var body=el('groupBody');
+    el('gSub').textContent=invitedCode&&!groupCode()
+      ? 'You\u2019ve been invited \u2014 enter a name to join'
+      : 'Same puzzle, same deck, settled daily';
     if(!API_BASE){
       body.innerHTML='<p>Group leaderboards need the API deployed. Set <strong>API_BASE</strong> '+
         'at the top of the script to your Worker URL, then this panel comes alive.</p>';
@@ -993,6 +997,7 @@
       '<h4>'+esc(groupName())+'</h4>'+
       '<div class="codebox"><b>'+esc(groupCode())+'</b>'+
       '<button class="gbtn ghost" id="gCopy" style="margin:0;width:auto;padding:8px 12px">Copy invite</button></div>'+
+      '<div class="gnote" style="margin-top:6px">Copies a ready-to-send message with the join link.</div>'+
       '<h4>Your name</h4>'+
       '<input class="fld" id="gName" maxlength="24" placeholder="What your friends call you" value="'+esc(playerName())+'">'+
       '<button class="gbtn ghost" id="gRename">Save name</button>'+
@@ -1004,7 +1009,11 @@
 
     el('gCopy').onclick=function(){
       var link=window.location.origin+'/?g='+groupCode();
-      copyResult(link,el('gCopy'));
+      var msg='\uD83C\uDCCF Join my Nine Lives group \u2014 '+groupName()+'\n'+
+        'Nine cards, one deck, no mercy. Same puzzle for everyone, new one daily.\n'+
+        'Tap to join: '+link+'\n'+
+        '(or enter code '+groupCode()+')';
+      copyResult(msg,el('gCopy'));
     };
     el('gRename').onclick=function(){doRename()};
     el('gLeave').onclick=function(){doLeave()};
@@ -1108,10 +1117,13 @@
     var m=/[?&]g=([A-Za-z2-9]{6})/.exec(window.location.search);
     if(!m||!API_BASE)return;
     if(groupCode()===m[1].toUpperCase())return;
+    invitedCode=m[1].toUpperCase();
     groupPanel();
     openModal(groupScrim,el('gClose'));
     var f=el('gCodeIn');
-    if(f)f.value=m[1].toUpperCase();
+    if(f)f.value=invitedCode;
+    var n=el('gName');
+    if(n&&!n.value)n.focus();
   })();
 
   if(get(K.lang)==='clean')setLang(true);
