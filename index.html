@@ -489,7 +489,7 @@
   /* Group leaderboards call a Cloudflare Worker. Paste its URL here after deploying
      the worker/ folder — e.g. 'https://nine-lives-api.you.workers.dev'. Left empty,
      the group panel explains it isn't set up and the rest of the game is unaffected. */
-  var API_BASE='https://nine-lives-api.maden-herve.workers.dev';
+  var API_BASE='';
 
   var el=function(i){return document.getElementById(i)};
   var gridEl=el('grid'),msgEl=el('msg'),promptEl=el('prompt');
@@ -937,10 +937,15 @@
   function api(path,opts){
     if(!API_BASE)return Promise.reject(new Error('not configured'));
     return fetch(API_BASE.replace(/\/+$/,'')+path,opts).then(function(r){
-      return r.json().then(function(d){
-        if(!r.ok)throw new Error(d&&d.error?d.error:'request failed');
+      return r.text().then(function(txt){
+        var d=null;
+        try{d=JSON.parse(txt)}catch(e){}
+        if(!r.ok)throw new Error((d&&d.error?d.error:'HTTP '+r.status)+' \u00b7 '+path);
+        if(!d)throw new Error('bad response from server');
         return d;
       });
+    },function(netErr){
+      throw new Error('cannot reach the server (' + (netErr.message||'network') + ')');
     });
   }
 
@@ -1069,7 +1074,7 @@
     }).then(function(d){
       set(K.gcode,d.code);set(K.gname,d.name);groupPanel();
     })['catch'](function(e){
-      el('gErr').textContent='Could not create the group.';
+      el('gErr').textContent='Create failed: '+(e.message||'unknown');
       el('gCreate').disabled=false;
     });
   }
@@ -1088,8 +1093,8 @@
       body:JSON.stringify({code:code,playerId:playerId(),playerName:nm})
     }).then(function(d){
       set(K.gcode,d.code);set(K.gname,d.name);groupPanel();
-    })['catch'](function(){
-      if(el('gErr'))el('gErr').textContent='No group with that code.';
+    })['catch'](function(e){
+      if(el('gErr'))el('gErr').textContent='Join failed: '+(e.message||'unknown');
     });
   }
 
@@ -1115,5 +1120,4 @@
 })();
 </script>
 </body>
-</html>
 </html>
