@@ -277,6 +277,10 @@
     padding:1px 4px;flex:none}
   .lrow.me{background:rgba(199,154,46,.1);border-radius:var(--r)}
   .lrow.me .who{color:var(--brass);font-weight:800}
+  .lrow.pending .who{color:var(--chalk)}
+  .lrow.pending .pos{opacity:.5}
+  .lrow .sc.waiting{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk)}
+  .lrow.pending.me .who{color:var(--brass);opacity:.8}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}
   .chip{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
     padding:7px 11px;border-radius:99px;cursor:pointer;max-width:150px;
@@ -1130,17 +1134,22 @@
       .then(function(d){
         if(!el('gBoard'))return;
         if(!d.rows.length){
-          el('gBoard').innerHTML='<p>Nobody has finished today yet. Be first.</p>';
+          el('gBoard').innerHTML='<p>No members yet.</p>';
           return;
         }
-        var me=playerId();
-        el('gBoard').innerHTML=d.rows.map(function(r,i){
-          return '<div class="lrow'+(r.player_id===me?' me':'')+'">'+
-            '<span class="pos">'+(i+1)+'</span>'+
+        var me=playerId(),rank=0,anyPlayed=false;
+        var html=d.rows.map(function(r){
+          var played=(r.cleared!==null&&r.cleared!==undefined);
+          if(played){rank++;anyPlayed=true}
+          return '<div class="lrow'+(played?'':' pending')+(r.player_id===me?' me':'')+'">'+
+            '<span class="pos">'+(played?rank:'\u00b7')+'</span>'+
             '<span class="who">'+esc(r.name)+'</span>'+
-            '<span class="df">'+esc(r.diff)+'</span>'+
-            '<span class="sc">'+r.cleared+'/43</span></div>';
+            (played?'<span class="df">'+esc(r.diff)+'</span><span class="sc">'+r.cleared+'/43</span>'
+                   :'<span class="sc waiting">Yet to play</span>')+
+            '</div>';
         }).join('');
+        if(!anyPlayed)html='<p style="margin-bottom:6px">Nobody has finished today yet. Be first.</p>'+html;
+        el('gBoard').innerHTML=html;
       })['catch'](function(){
         if(el('gBoard'))el('gBoard').innerHTML='<p>Could not reach the leaderboard.</p>';
       });
