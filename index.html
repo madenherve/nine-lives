@@ -36,7 +36,7 @@
     --chalk:#9FB3A6;
     --dead:#1B3227;
     --r:3px;
-    --reserve:272px;
+    --reserve:281px;
     --boardw:max(240px,min(450px,calc(100vw - 28px),calc((100vh - var(--reserve)) / 1.4)));
     /* No webfont requests: keeps load instant and sends no visitor IPs to third parties.
        Apple devices get Bodoni 72 for the Victorian card look; everything else falls to Georgia. */
@@ -107,8 +107,8 @@
   }
   .card.red{color:var(--ox)}
   .card.ghost{filter:grayscale(1);opacity:.28;box-shadow:none}
-  .corner{font-family:var(--serif);font-weight:700;font-size:clamp(14px,2.7vh,21px);line-height:.9;display:flex;flex-direction:column;align-items:flex-start}
-  .corner small{font-size:.72em}
+  .corner{font-family:var(--serif);font-weight:700;font-size:clamp(19px,3.5vh,27px);line-height:.88;display:flex;flex-direction:column;align-items:flex-start}
+  .corner small{font-size:.64em}
   .corner.flip{align-self:flex-end;transform:rotate(180deg)}
   .pip{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(28px,5.5vh,42px);opacity:.9}
   .slot[aria-pressed="true"] .card{transform:translateY(-6px);box-shadow:0 2px 0 rgba(0,0,0,.35),0 12px 22px rgba(0,0,0,.5),0 0 0 2px var(--brass)}
@@ -304,6 +304,23 @@
 
     /* All three control groups share one line; their labels stack above the buttons. */
     .ctlbar{gap:6px;flex-wrap:nowrap;padding-bottom:8px;margin-bottom:9px}
+    .puz{font-size:10px}
+    .seg span{font-size:8px}
+    .seg button{font-size:9.5px;letter-spacing:.02em}
+
+    /* The tracker sits collapsed behind a tap on phones, so its type can grow
+       freely — it is outside the vertical budget that sizes the cards. */
+    .tracker h2{font-size:10px}
+    .bigcount .n{font-size:52px}
+    .bigcount .lb{font-size:10px}
+    .col .n{font-size:24px}
+    .col .lb{font-size:9px}
+    .col .sub{font-size:10px}
+    .barlb{font-size:9px}
+    .rk .lb{font-size:12px}
+    .rk .ct{font-size:11px;padding:2px 0}
+    .trkWrap summary{font-size:10px;padding:10px 12px}
+    .tracker.off p{font-size:11px}
     .seg{flex:1 1 0;min-width:0;flex-wrap:wrap}
     .seg span{
       width:100%;justify-content:center;text-align:center;
@@ -322,8 +339,8 @@
       display:flex;align-items:baseline;justify-content:center;gap:5px;
     }
     .stat+.stat{border-left:1px solid rgba(199,154,46,.18)}
-    .stat b{font-size:14px}
-    .stat span{font-size:8px;white-space:nowrap}
+    .stat b{font-size:17px}
+    .stat span{font-size:9.5px;white-space:nowrap}
 
     .gridwrap,.msg,.foot,.note,.trkWrap summary{margin-left:auto;margin-right:auto}
 
