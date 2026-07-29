@@ -83,7 +83,7 @@
   .seg button:focus-visible{outline:2px solid var(--brass);outline-offset:-2px}
 
   .board{display:grid;gap:16px;grid-template-columns:1fr}
-  @media(min-width:820px){.board{grid-template-columns:var(--boardw) 226px;align-items:start;gap:22px;justify-content:center}}
+  @media(min-width:820px){.board{grid-template-columns:var(--boardw) 252px;align-items:start;gap:22px;justify-content:center}}
   .status,.gridwrap,.calls,.msg,.foot,.note{width:var(--boardw);max-width:100%}
 
   .status{display:flex;gap:8px;margin-bottom:9px;font-family:var(--mono)}
@@ -195,29 +195,29 @@
   @media(min-width:820px){.trkWrap summary{display:none}.trkWrap[open] summary{margin:0}}
 
   .tracker{border:1px solid rgba(199,154,46,.25);border-radius:var(--r);padding:11px;background:rgba(255,255,255,.02)}
-  .tracker h2{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);margin-bottom:8px}
+  .tracker h2{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);margin-bottom:8px}
   .tracker.off{display:flex;align-items:center;justify-content:center;min-height:84px;text-align:center}
   .tracker.off p{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--chalk);line-height:1.8}
   .bigcount{text-align:center;padding:6px 0 11px}
-  .bigcount .n{font-family:var(--mono);font-size:42px;font-weight:700;line-height:.9;color:var(--brass)}
-  .bigcount .lb{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--chalk);margin-top:5px}
+  .bigcount .n{font-family:var(--mono);font-size:54px;font-weight:700;line-height:.9;color:var(--brass)}
+  .bigcount .lb{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--chalk);margin-top:5px}
   .track{height:5px;border-radius:99px;background:rgba(0,0,0,.45);overflow:hidden;margin-top:8px}
   .track i{display:block;height:100%;background:var(--brass);transition:width .3s ease}
   .cols{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
-  .col{text-align:center;padding:6px 3px;border-radius:var(--r);background:rgba(0,0,0,.28)}
-  .col .n{font-family:var(--mono);font-size:19px;font-weight:700;line-height:1}
+  .col{text-align:center;padding:9px 3px;border-radius:var(--r);background:rgba(0,0,0,.28)}
+  .col .n{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1}
   .col.red .n{color:#E9938E}
-  .col .lb{font-size:7.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--chalk);margin-top:3px}
-  .col .sub{font-family:var(--mono);font-size:8.5px;color:var(--chalk);margin-top:3px}
+  .col .lb{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--chalk);margin-top:3px}
+  .col .sub{font-family:var(--mono);font-size:10.5px;color:var(--chalk);margin-top:3px}
   .bar{height:6px;border-radius:99px;overflow:hidden;display:flex;background:#000;margin-bottom:3px}
   .bar i{display:block;transition:width .3s ease}
   .bar .r{background:var(--ox)}
   .bar .b{background:var(--cream-dim)}
-  .barlb{font-family:var(--mono);font-size:7.5px;color:var(--chalk);display:flex;justify-content:space-between;margin-bottom:11px;letter-spacing:.08em}
+  .barlb{font-family:var(--mono);font-size:9.5px;color:var(--chalk);display:flex;justify-content:space-between;margin-bottom:11px;letter-spacing:.08em}
   .ranks{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
   .rk{text-align:center}
-  .rk .lb{font-family:var(--serif);font-size:10px;color:var(--cream-dim);line-height:1.3}
-  .rk .ct{font-family:var(--mono);font-size:8.5px;padding:1px 0;border-radius:2px;background:rgba(199,154,46,.18)}
+  .rk .lb{font-family:var(--serif);font-size:13px;color:var(--cream-dim);line-height:1.3}
+  .rk .ct{font-family:var(--mono);font-size:12px;padding:3px 0;border-radius:2px;background:rgba(199,154,46,.18)}
   .rk .ct.zero{background:rgba(0,0,0,.4);color:#4C6155}
 
   .foot{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -310,16 +310,16 @@
 
     /* The tracker sits collapsed behind a tap on phones, so its type can grow
        freely — it is outside the vertical budget that sizes the cards. */
-    .tracker h2{font-size:10px}
-    .bigcount .n{font-size:52px}
-    .bigcount .lb{font-size:10px}
-    .col .n{font-size:24px}
-    .col .lb{font-size:9px}
-    .col .sub{font-size:10px}
-    .barlb{font-size:9px}
-    .rk .lb{font-size:12px}
-    .rk .ct{font-size:11px;padding:2px 0}
-    .trkWrap summary{font-size:10px;padding:10px 12px}
+    .tracker h2{font-size:12px}
+    .bigcount .n{font-size:64px}
+    .bigcount .lb{font-size:12px}
+    .col .n{font-size:31px}
+    .col .lb{font-size:11px}
+    .col .sub{font-size:12px}
+    .barlb{font-size:11px}
+    .rk .lb{font-size:15px}
+    .rk .ct{font-size:14px;padding:4px 0}
+    .trkWrap summary{font-size:11px;padding:11px 12px}
     .tracker.off p{font-size:11px}
     .seg{flex:1 1 0;min-width:0;flex-wrap:wrap}
     .seg span{
