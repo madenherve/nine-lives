@@ -277,6 +277,16 @@
     padding:1px 4px;flex:none}
   .lrow.me{background:rgba(199,154,46,.1);border-radius:var(--r)}
   .lrow.me .who{color:var(--brass);font-weight:800}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}
+  .chip{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    padding:7px 11px;border-radius:99px;cursor:pointer;max-width:150px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    background:none;border:1px solid rgba(199,154,46,.4);color:var(--chalk)}
+  .chip:hover{background:rgba(199,154,46,.14)}
+  .chip.on{background:var(--brass);color:#1A1405;font-weight:700;border-color:var(--brass)}
+  .chip.add{padding:7px 12px;font-size:13px;line-height:1;color:var(--brass)}
+  .chip:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
   .gnote{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--brass-dim);margin-top:10px;line-height:1.7}
 
@@ -484,6 +494,7 @@
   var K={res:'nl.result.',streakN:'nl.streak.count',streakD:'nl.streak.date',
          stats:'nl.stats',lang:'nl.lang',
          pid:'nl.player.id',pname:'nl.player.name',
+         groups:'nl.groups',gactive:'nl.group.active',
          gcode:'nl.group.code',gname:'nl.group.name'};
 
   /* Group leaderboards call a Cloudflare Worker. Paste its URL here after deploying
@@ -921,7 +932,10 @@
     if(daily&&todayKey()!==loadedDay){loadedDay=todayKey();dayStreak=parseInt(get(K.streakN)||'0',10);start()}
   },60000);
 
-  /* ================= group leaderboards ================= */
+  /* ================= group leaderboards =================
+     A player can belong to several groups. The local list is the working copy and
+     the server is reconciled into it when the panel opens; scores post to every
+     group at once, while the panel shows one at a time. */
   function playerId(){
     var id=get(K.pid);
     if(!id){
@@ -930,9 +944,51 @@
     }
     return id;
   }
+  /* K.pname is only the default suggested when joining somewhere new; the name
+     that actually appears on a board lives on that group's entry as `me`. */
   function playerName(){return get(K.pname)||''}
-  function groupCode(){return get(K.gcode)||''}
-  function groupName(){return get(K.gname)||''}
+  function nameIn(g){return (g&&g.me)||playerName()||'Anonymous'}
+
+  function groups(){
+    try{var a=JSON.parse(get(K.groups));return Array.isArray(a)?a:[]}catch(e){return []}
+  }
+  function saveGroups(a){set(K.groups,JSON.stringify(a))}
+  function activeCode(){return get(K.gactive)||''}
+  function activeGroup(){
+    var list=groups(),c=activeCode(),i;
+    for(i=0;i<list.length;i++)if(list[i].code===c)return list[i];
+    return list[0]||null;
+  }
+  function addGroup(g){
+    var list=groups(),i;
+    for(i=0;i<list.length;i++)if(list[i].code===g.code){
+      list[i].name=g.name;
+      if(g.me)list[i].me=g.me;
+      saveGroups(list);set(K.gactive,g.code);return;
+    }
+    list.push({code:g.code,name:g.name,me:g.me||playerName()||'Anonymous'});
+    saveGroups(list);set(K.gactive,g.code);
+  }
+  function setNameIn(code,nm){
+    var list=groups(),i;
+    for(i=0;i<list.length;i++)if(list[i].code===code)list[i].me=nm;
+    saveGroups(list);
+  }
+  function dropGroup(code){
+    var list=groups().filter(function(g){return g.code!==code});
+    saveGroups(list);
+    set(K.gactive,list.length?list[0].code:'');
+  }
+
+  /* One-off migration from the single-group storage used before. */
+  (function(){
+    var old=get(K.gcode);
+    if(old&&!groups().length){
+      saveGroups([{code:old,name:get(K.gname)||'Group'}]);
+      set(K.gactive,old);
+    }
+    if(old){del(K.gcode);del(K.gname)}
+  })();
 
   function api(path,opts){
     if(!API_BASE)return Promise.reject(new Error('not configured'));
@@ -956,31 +1012,69 @@
   }
 
   function submitScore(res){
-    if(!API_BASE||!groupCode()||!res.daily)return;
-    api('/api/score',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        code:groupCode(),playerId:playerId(),name:playerName()||'Anonymous',
-        puzzle:res.no,cleared:res.cleared,lives:res.lives,diff:res.diff,
-        grid:shareGrid(res.boxes).replace(/\n/g,' / ')
-      })
-    })['catch'](function(){/* leaderboard is best-effort; never block the game */});
+    if(!API_BASE||!res.daily)return;
+    groups().forEach(function(g){
+      api('/api/score',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          code:g.code,playerId:playerId(),name:nameIn(g),
+          puzzle:res.no,cleared:res.cleared,lives:res.lives,diff:res.diff,
+          grid:shareGrid(res.boxes).replace(/\n/g,' / ')
+        })
+      })['catch'](function(){/* best effort; never block the game */});
+    });
   }
 
-  var invitedCode=null;
+  /* Reconcile the local list with the server's record for this device. */
+  function syncGroups(){
+    if(!API_BASE)return;
+    api('/api/groups?playerId='+encodeURIComponent(playerId())).then(function(d){
+      if(!d.groups)return;
+      var before=JSON.stringify(groups());
+      saveGroups(d.groups);
+      if(d.groups.length && !d.groups.filter(function(g){return g.code===activeCode()}).length){
+        set(K.gactive,d.groups[0].code);
+      }
+      if(JSON.stringify(groups())!==before && !groupScrim.hidden)groupPanel();
+    })['catch'](function(){/* offline is fine, keep the local list */});
+  }
+
+  var invitedCode=null,showAdd=false;
+
   function groupPanel(){
     var body=el('groupBody');
-    el('gSub').textContent=invitedCode&&!groupCode()
+    var list=groups(),active=activeGroup();
+    el('gSub').textContent=invitedCode&&!list.length
       ? 'You\u2019ve been invited \u2014 enter a name to join'
       : 'Same puzzle, same deck, settled daily';
+
     if(!API_BASE){
       body.innerHTML='<p>Group leaderboards need the API deployed. Set <strong>API_BASE</strong> '+
         'at the top of the script to your Worker URL, then this panel comes alive.</p>';
       return;
     }
-    if(!groupCode()){
-      body.innerHTML=
-        '<h4>Your name</h4>'+
+
+    var html='';
+    if(list.length){
+      html+='<div class="chips">'+list.map(function(g){
+        return '<button class="chip'+(active&&g.code===active.code?' on':'')+'" data-code="'+esc(g.code)+'">'+esc(g.name)+'</button>';
+      }).join('')+'<button class="chip add" id="gAdd" aria-label="Join or create another group">+</button></div>';
+    }
+
+    if(active&&!showAdd){
+      html+='<div class="codebox"><b>'+esc(active.code)+'</b>'+
+        '<button class="gbtn ghost" id="gCopy" style="margin:0;width:auto;padding:8px 12px">Copy invite</button></div>'+
+        '<div class="gnote" style="margin-top:6px">Copies a ready-to-send message with the join link.</div>'+
+        '<h4>Your name in '+esc(active.name)+'</h4>'+
+        '<input class="fld" id="gName" maxlength="24" placeholder="What this group calls you" value="'+esc(nameIn(active))+'">'+
+        '<button class="gbtn ghost" id="gRename">Save name</button>'+
+        '<h4>Puzzle #'+puzzleNo()+'</h4>'+
+        '<div id="gBoard"><p>Loading\u2026</p></div>'+
+        '<div class="gnote" id="gErr">Scores post to every group you\u2019re in. '+
+        'First result of the day is the one that counts.</div>'+
+        '<button class="gbtn ghost" id="gLeave" style="margin-top:14px">Leave '+esc(active.name)+'</button>';
+    }else{
+      html+='<h4>Your name</h4>'+
         '<input class="fld" id="gName" maxlength="24" placeholder="What your friends call you" value="'+esc(playerName())+'">'+
         '<h4>Start a group</h4>'+
         '<input class="fld" id="gTitleIn" maxlength="32" placeholder="Group name">'+
@@ -989,70 +1083,33 @@
         '<input class="fld" id="gCodeIn" maxlength="6" placeholder="6-letter code" style="text-transform:uppercase">'+
         '<button class="gbtn ghost" id="gJoin">Join group</button>'+
         '<div class="gnote" id="gErr"></div>';
-      el('gCreate').onclick=function(){doCreate()};
-      el('gJoin').onclick=function(){doJoin(el('gCodeIn').value)};
-      return;
+      if(list.length)html+='<button class="gbtn ghost" id="gBack" style="margin-top:12px">Back to '+esc(active?active.name:'groups')+'</button>';
     }
-    body.innerHTML=
-      '<h4>'+esc(groupName())+'</h4>'+
-      '<div class="codebox"><b>'+esc(groupCode())+'</b>'+
-      '<button class="gbtn ghost" id="gCopy" style="margin:0;width:auto;padding:8px 12px">Copy invite</button></div>'+
-      '<div class="gnote" style="margin-top:6px">Copies a ready-to-send message with the join link.</div>'+
-      '<h4>Your name</h4>'+
-      '<input class="fld" id="gName" maxlength="24" placeholder="What your friends call you" value="'+esc(playerName())+'">'+
-      '<button class="gbtn ghost" id="gRename">Save name</button>'+
-      '<h4>Puzzle #'+puzzleNo()+'</h4>'+
-      '<div id="gBoard"><p>Loading\u2026</p></div>'+
-      '<div class="gnote" id="gErr">Scores post automatically when you finish the daily. '+
-      'First result of the day is the one that counts.</div>'+
-      '<button class="gbtn ghost" id="gLeave" style="margin-top:14px">Leave group</button>';
+    body.innerHTML=html;
 
-    el('gCopy').onclick=function(){
-      var link=window.location.origin+'/?g='+groupCode();
-      var msg='\uD83C\uDCCF Join my Nine Lives group \u2014 '+groupName()+'\n'+
+    [].slice.call(body.querySelectorAll('.chip[data-code]')).forEach(function(c){
+      c.onclick=function(){set(K.gactive,c.getAttribute('data-code'));showAdd=false;groupPanel()};
+    });
+    if(el('gAdd'))el('gAdd').onclick=function(){showAdd=true;groupPanel()};
+    if(el('gBack'))el('gBack').onclick=function(){showAdd=false;groupPanel()};
+    if(el('gCreate'))el('gCreate').onclick=function(){doCreate()};
+    if(el('gJoin'))el('gJoin').onclick=function(){doJoin(el('gCodeIn').value)};
+    if(el('gRename'))el('gRename').onclick=function(){doRename()};
+    if(el('gLeave'))el('gLeave').onclick=function(){doLeave()};
+    if(el('gCopy'))el('gCopy').onclick=function(){
+      var link=window.location.origin+'/?g='+active.code;
+      var msg='\uD83C\uDCCF Join my Nine Lives group \u2014 '+active.name+'\n'+
         'Nine cards, one deck, no mercy. Same puzzle for everyone, new one daily.\n'+
         'Tap to join: '+link+'\n'+
-        '(or enter code '+groupCode()+')';
+        '(or enter code '+active.code+')';
       copyResult(msg,el('gCopy'));
     };
-    el('gRename').onclick=function(){doRename()};
-    el('gLeave').onclick=function(){doLeave()};
-    loadBoard();
+    if(active&&!showAdd)loadBoard(active.code);
   }
 
-  function doRename(){
-    var nm=el('gName').value.trim();
-    if(!nm){el('gErr').textContent='Enter a name first.';return}
-    set(K.pname,nm);
-    var btn=el('gRename');
-    btn.disabled=true;btn.textContent='Saving\u2026';
-    api('/api/name',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code:groupCode(),playerId:playerId(),name:nm})
-    }).then(function(){
-      btn.textContent='Saved';
-      setTimeout(function(){if(el('gRename')){el('gRename').textContent='Save name';el('gRename').disabled=false}},1500);
-      loadBoard();
-    })['catch'](function(){
-      el('gErr').textContent='Saved on this device, but the group could not be updated.';
-      btn.textContent='Save name';btn.disabled=false;
-    });
-  }
-
-  function doLeave(){
-    if(!window.confirm('Leave '+groupName()+'? Your scores in this group are removed too.'))return;
-    var code=groupCode();
-    var done=function(){del(K.gcode);del(K.gname);groupPanel()};
-    api('/api/leave',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({code:code,playerId:playerId()})
-    }).then(done,done); // leave locally regardless of what the server says
-  }
-
-  function loadBoard(){
-    var target=el('gBoard');
-    if(!target)return;
-    api('/api/board?code='+encodeURIComponent(groupCode())+'&puzzle='+puzzleNo())
+  function loadBoard(code){
+    if(!el('gBoard'))return;
+    api('/api/board?code='+encodeURIComponent(code)+'&puzzle='+puzzleNo())
       .then(function(d){
         if(!el('gBoard'))return;
         if(!d.rows.length){
@@ -1081,7 +1138,7 @@
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({name:title||'Nine Lives',playerId:playerId(),playerName:nm})
     }).then(function(d){
-      set(K.gcode,d.code);set(K.gname,d.name);groupPanel();
+      addGroup({code:d.code,name:d.name,me:nm});showAdd=false;invitedCode=null;groupPanel();
     })['catch'](function(e){
       el('gErr').textContent='Create failed: '+(e.message||'unknown');
       el('gCreate').disabled=false;
@@ -1101,31 +1158,62 @@
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({code:code,playerId:playerId(),playerName:nm})
     }).then(function(d){
-      set(K.gcode,d.code);set(K.gname,d.name);groupPanel();
+      addGroup({code:d.code,name:d.name,me:nm});showAdd=false;invitedCode=null;groupPanel();
     })['catch'](function(e){
       if(el('gErr'))el('gErr').textContent='Join failed: '+(e.message||'unknown');
     });
   }
 
+  function doRename(){
+    var nm=el('gName').value.trim(),active=activeGroup();
+    if(!nm||!active){el('gErr').textContent='Enter a name first.';return}
+    set(K.pname,nm);            // remembered as the default for future groups
+    setNameIn(active.code,nm);  // but only this group is renamed
+    var btn=el('gRename');
+    btn.disabled=true;btn.textContent='Saving\u2026';
+    api('/api/name',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:active.code,playerId:playerId(),name:nm})
+    }).then(function(){
+      btn.textContent='Saved';
+      setTimeout(function(){if(el('gRename')){el('gRename').textContent='Save name';el('gRename').disabled=false}},1500);
+      loadBoard(active.code);
+    })['catch'](function(){
+      el('gErr').textContent='Saved on this device, but the group could not be updated.';
+      btn.textContent='Save name';btn.disabled=false;
+    });
+  }
+
+  function doLeave(){
+    var active=activeGroup();
+    if(!active)return;
+    if(!window.confirm('Leave '+active.name+'? Your scores in this group are removed too.'))return;
+    var done=function(){dropGroup(active.code);showAdd=false;groupPanel()};
+    api('/api/leave',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:active.code,playerId:playerId()})
+    }).then(done,done); // leave locally regardless of what the server says
+  }
+
   var groupScrim=el('groupScrim');
-  el('group').onclick=function(){groupPanel();openModal(groupScrim,el('gClose'))};
+  el('group').onclick=function(){groupPanel();openModal(groupScrim,el('gClose'));syncGroups()};
   el('gClose').onclick=function(){closeModal(groupScrim)};
   groupScrim.onclick=function(e){if(e.target===groupScrim)closeModal(groupScrim)};
 
-  /* Invite links: /?g=CODE opens the panel with the code prefilled. */
+  /* Invite links: /?g=CODE opens the panel ready to join. */
   (function(){
     var m=/[?&]g=([A-Za-z2-9]{6})/.exec(window.location.search);
     if(!m||!API_BASE)return;
-    if(groupCode()===m[1].toUpperCase())return;
-    invitedCode=m[1].toUpperCase();
+    var code=m[1].toUpperCase();
+    if(groups().filter(function(g){return g.code===code}).length)return;
+    invitedCode=code;showAdd=true;
     groupPanel();
     openModal(groupScrim,el('gClose'));
     var f=el('gCodeIn');
-    if(f)f.value=invitedCode;
+    if(f)f.value=code;
     var n=el('gName');
     if(n&&!n.value)n.focus();
   })();
-
   if(get(K.lang)==='clean')setLang(true);
   dayStreak=parseInt(get(K.streakN)||'0',10);
   start();
